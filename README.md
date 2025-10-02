@@ -3,6 +3,8 @@
 **Author:** Goran Zajec  
 **Website:** https://svejedobro.hr
 
+![SyncBackup](https://raw.githubusercontent.com/zaja/SyncBackup/refs/heads/master/app/SyncBackup.png)
+
 ## 📋 Overview
 
 SyncBackup v1.2 is an advanced Python Tkinter application for folder synchronization and backup with automatic scheduling capabilities, file retention policy, SQLite database, system tray functionality, and comprehensive dashboard monitoring.
