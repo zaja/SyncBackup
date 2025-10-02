@@ -112,7 +112,7 @@ SyncBackup/
 │   ├── database.py      # SQLite database manager
 │   ├── tray_icon.py     # System tray functionality
 │   ├── sync_backup.db   # SQLite database (created automatically)
-│   ├── MANUAL.html      # User manual (Croatian)
+│   ├── MANUAL_HR.html      # User manual (Croatian)
 │   ├── MANUAL_EN.html   # User manual (English)
 │   └── requirements.txt # Dependencies
 └── README.md           # This file
