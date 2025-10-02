@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncBackup v1.2 - User Manual</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #2980b9;
+        }
+        .box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 15px 0;
+        }
+        .warning {
+            border-left-color: #f39c12;
+            background: #fff3cd;
+        }
+        .success {
+            border-left-color: #27ae60;
+            background: #d4edda;
+        }
+        ul {
+            margin: 10px 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #f8f9fa;
+        }
+        .author {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>SyncBackup v1.2 - User Manual</h1>
+    <p style="text-align: center; color: #666;">Author: Goran Zajec | Web: <a href="https://svejedobro.hr">https://svejedobro.hr</a></p>
+
+    <h2>📖 Introduction</h2>
+    <p>SyncBackup is an application for automatic backup and folder synchronization. It supports two types of jobs, automatic scheduling, SQLite database and system tray functionality.</p>
+
+    <div class="box success">
+        <strong>Key Features:</strong>
+        <ul>
+            <li>Dashboard with statistics overview</li>
+            <li>Simple and Incremental jobs</li>
+            <li>Automatic execution scheduling</li>
+            <li>ZIP backup compression</li>
+            <li>File filtering (exclude patterns)</li>
+            <li>Desktop notifications</li>
+            <li>System tray support</li>
+        </ul>
+    </div>
+	
+	<div class="box" style="background: #e8f4f8; border-left-color: #2980b9;">
+    <h2 style="margin-top: 0;">💡 Why SyncBackup?</h2>
+    <p>SyncBackup was born from personal necessity after losing days or weeks of work on projects several times. The most dramatic case was when I worked on a WordPress plugin for over a week, and while testing the uninstall function, I accidentally deleted the entire project folder. At that moment, it became crystal clear - this must never happen again.</p>
+    
+    <p>I looked for existing backup and sync solutions, but:</p>
+    <ul>
+        <li>Most were too heavy and bloated for my needs</li>
+        <li>They were slow and consumed too many resources</li>
+        <li>Often not intuitive to use</li>
+        <li>Not flexible enough for different backup scenarios</li>
+    </ul>
+    
+    <p><strong>The solution?</strong> Build my own application that is:</p>
+    <ul>
+        <li>✅ <strong>Fast and lightweight</strong> - no unnecessary features</li>
+        <li>✅ <strong>Simple</strong> - intuitive interface</li>
+        <li>✅ <strong>Flexible</strong> - Simple and Incremental backups</li>
+        <li>✅ <strong>Automated</strong> - set it and forget it</li>
+        <li>✅ <strong>Reliable</strong> - never lose projects again</li>
+    </ul>
+    
+    <p style="margin-bottom: 0;"><em>If you're developing software, working on important documents, or simply don't want to experience that sinking feeling when you realize hours or days of work have vanished - this application is for you.</em></p>
+</div>
+
+    <h2>🚀 Quick Start</h2>
+    
+    <h3>Installation and Running</h3>
+    <ol>
+        <li>Install required modules: <code>pip install -r app/requirements.txt</code></li>
+        <li>Run the application: <code>double-click main.pyw</code> or <code>python main.py</code></li>
+    </ol>
+
+    <h3>Creating Your First Job</h3>
+    <ol>
+        <li>Click <strong>"➕ New Job"</strong></li>
+        <li>Enter job name</li>
+        <li>Select type (Simple or Incremental)</li>
+        <li>Set source and destination folders</li>
+        <li>Configure schedule</li>
+        <li>Check "Active" for automatic execution</li>
+        <li>Click "Save"</li>
+    </ol>
+
+    <h2>📁 Job Types</h2>
+
+    <h3>Simple Job</h3>
+    <div class="box">
+        <p><strong>How it works:</strong> Creates a complete copy of the source folder with date and time in the name.</p>
+        <p><strong>Example:</strong> <code>Documents_20251002_143000</code></p>
+        <p><strong>Additional options:</strong></p>
+        <ul>
+            <li><strong>ZIP Compression:</strong> Compress backups as ZIP files for space saving</li>
+            <li><strong>Exclude Patterns:</strong> Exclude specific files/folders (e.g., .git, node_modules, __pycache__)</li>
+            <li><strong>Desktop Notifications:</strong> Show notifications when job completes (success/error)</li>
+        </ul>
+    </div>
+
+    <h3>Incremental Job</h3>
+    <div class="box">
+        <p><strong>How it works:</strong> Works with two concepts:</p>
+        <ul>
+            <li><strong>Sync Directory:</strong> Up-to-date working copy (destination/folder_name/)</li>
+            <li><strong>Snapshots:</strong> Periodic archive copies (destination/folder_INCREMENTAL_timestamp/)</li>
+        </ul>
+        <p><strong>Options:</strong></p>
+        <ul>
+            <li><strong>Preserve deleted files:</strong> Keep files in sync directory even when deleted from source</li>
+            <li><strong>Create snapshots:</strong> Enable/disable periodic snapshot creation</li>
+            <li><strong>Snapshot interval:</strong> How often to create snapshots (hours/days/weeks)</li>
+            <li><strong>Exclude Patterns:</strong> Exclude specific files/folders (e.g., .git, node_modules, __pycache__)</li>
+            <li><strong>Desktop Notifications:</strong> Show notifications when job completes (success/error)</li>
+        </ul>
+    </div>
+
+    <div class="box warning">
+        <strong>Important:</strong> In the Backup Files tab you will only see snapshots, not the sync directory. This is by design - the sync directory is a working copy, while snapshots are archive backups for recovery.
+    </div>
+
+    <h2>⏰ Scheduling</h2>
+    <table>
+        <tr>
+            <th>Option</th>
+            <th>Description</th>
+            <th>Example</th>
+        </tr>
+        <tr>
+            <td>Every X minutes</td>
+            <td>Runs every X minutes</td>
+            <td>30 minutes</td>
+        </tr>
+        <tr>
+            <td>Every X hours</td>
+            <td>Runs every X hours</td>
+            <td>6 hours</td>
+        </tr>
+        <tr>
+            <td>Daily</td>
+            <td>Daily at specific time</td>
+            <td>20:00</td>
+        </tr>
+        <tr>
+            <td>Weekly</td>
+            <td>Weekly on specific day</td>
+            <td>Sunday</td>
+        </tr>
+        <tr>
+            <td>Monthly</td>
+            <td>Monthly on specific day</td>
+            <td>1st of month</td>
+        </tr>
+    </table>
+
+    <h2>🖥️ User Interface</h2>
+
+    <h3>Tabs</h3>
+    <ul>
+        <li><strong>📊 Dashboard:</strong> Statistics, success rate, next backup, activity</li>
+        <li><strong>📋 Jobs:</strong> Job list with control buttons</li>
+        <li><strong>📝 Logs:</strong> Execution logs with filters</li>
+        <li><strong>🗂️ Backup Files:</strong> View and manage backup files</li>
+    </ul>
+
+    <h3>Control Buttons (visible only in Jobs tab)</h3>
+    <ul>
+        <li><strong>➕ New Job:</strong> Creates new job (always visible)</li>
+        <li><strong>✏️ Edit Selected:</strong> Edits selected job</li>
+        <li><strong>🗑️ Delete Job:</strong> Deletes job</li>
+        <li><strong>📁 Open Destination:</strong> Opens destination folder in file explorer</li>
+        <li><strong>▶ Activate Job:</strong> Activates job</li>
+        <li><strong>⏸ Deactivate Job:</strong> Deactivates job</li>
+        <li><strong>▶ Run Selected:</strong> Runs job immediately</li>
+    </ul>
+
+    <div class="box">
+        <strong>Smart Interface:</strong> Control buttons are only visible when the Jobs tab is active. This makes the interface cleaner and clearer.
+    </div>
+
+    <h2>🔽 System Tray</h2>
+    <p>The application can run in the background. Minimizing sends the application to system tray, X button closes the application.</p>
+    <ul>
+        <li><strong>Minimize:</strong> Sends to tray</li>
+        <li><strong>X button:</strong> Asks for confirmation before closing</li>
+        <li><strong>Right-click tray icon:</strong> Show/Quit options</li>
+    </ul>
+
+    <h2>⚙️ Additional Features</h2>
+
+    <h3>Exclude Patterns</h3>
+    <p>Exclude specific files/folders from backup. Examples:</p>
+    <ul>
+        <li><code>.git,node_modules,__pycache__</code></li>
+        <li><code>*.tmp,*.log,Thumbs.db</code></li>
+        <li><code>cache/*,temp/*</code></li>
+    </ul>
+
+    <h3>ZIP Compression</h3>
+    <p>Available only for Simple jobs. Compresses backup as ZIP file for space saving.</p>
+
+    <h3>Desktop Notifications</h3>
+    <p>Shows notifications when job completes:</p>
+    <ul>
+        <li><strong>Success:</strong> Green notification with file count</li>
+        <li><strong>Error:</strong> Red notification with error description</li>
+        <li><strong>Skipped:</strong> Yellow notification (no changes)</li>
+    </ul>
+
+    <h3>File Retention Policy</h3>
+    <p>Automatic deletion of old backups:</p>
+    <ul>
+        <li><strong>Keep Count:</strong> Keep last N backups</li>
+        <li><strong>Keep Days:</strong> Keep backups for N days</li>
+        <li><strong>Keep Size:</strong> Keep up to N MB</li>
+    </ul>
+
+    <h2>🗃️ Database</h2>
+    <p>The application uses SQLite database (<code>app/sync_backup.db</code>) for:</p>
+    <ul>
+        <li>Job configurations</li>
+        <li>Hash values for change detection</li>
+        <li>Execution logs</li>
+        <li>Backup file tracking</li>
+        <li>Retention policy rules</li>
+    </ul>
+
+    <h2>🛠️ Troubleshooting</h2>
+
+    <h3>Job Not Running</h3>
+    <ul>
+        <li>Check if job is active</li>
+        <li>Check "Next Run" column</li>
+        <li>Look at logs for errors</li>
+    </ul>
+
+    <h3>Empty Backup</h3>
+    <ul>
+        <li>Check if source folder exists</li>
+        <li>Check read/write permissions</li>
+        <li>Check exclude patterns</li>
+    </ul>
+
+    <h3>Application Won't Start</h3>
+    <ul>
+        <li>Check if all modules are installed</li>
+        <li>Run from command prompt to see errors</li>
+        <li>Check Python version (3.7+)</li>
+    </ul>
+
+    <h2>📝 Changelog</h2>
+
+    <h3>v1.2 (2025-10-02)</h3>
+    <ul>
+        <li>Dashboard tab with statistics</li>
+        <li>Open Destination button</li>
+        <li>File exclusion patterns</li>
+        <li>Desktop notifications</li>
+        <li>ZIP compression</li>
+        <li>Conditional button visibility</li>
+        <li>Enhanced job dialog</li>
+    </ul>
+
+    <h3>v1.1 (2025-10-02)</h3>
+    <ul>
+        <li>Migration to SQLite database</li>
+        <li>System tray functionality</li>
+        <li>Single instance enforcement</li>
+        <li>Multi-selection support</li>
+        <li>Missing file detection</li>
+    </ul>
+
+    <div class="author">
+        <p><strong>Author:</strong> Goran Zajec<br>
+        <strong>Web:</strong> <a href="https://svejedobro.hr">https://svejedobro.hr</a></p>
+    </div>
+</body>
+</html>
