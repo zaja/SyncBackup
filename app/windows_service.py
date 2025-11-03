@@ -247,11 +247,17 @@ class SyncBackupService:
         if not source_path.exists():
             raise Exception(f"Source path does not exist: {source_path}")
         
+        self.logger.info(f"[Job: {job_data['name']}] Source: {source_path}")
+        self.logger.info(f"[Job: {job_data['name']}] Destination: {sync_path}")
+        
         # Create sync directory if it doesn't exist
         sync_path.mkdir(parents=True, exist_ok=True)
         
         # Simple sync - copy all files
         files_processed = 0
+        files_checked = 0
+        files_skipped = 0
+        
         for root, dirs, files in os.walk(source_path):
             root_path = Path(root)
             rel_path = os.path.relpath(root, source_path)
@@ -262,13 +268,21 @@ class SyncBackupService:
             for file in files:
                 src_file = root_path / file
                 dst_file = dest_dir / file
+                files_checked += 1
                 
                 # Copy if doesn't exist or is newer
-                if not dst_file.exists() or src_file.stat().st_mtime > dst_file.stat().st_mtime:
+                if not dst_file.exists():
+                    self.logger.info(f"[Job: {job_data['name']}] Copying new file: {file}")
                     shutil.copy2(src_file, dst_file)
                     files_processed += 1
+                elif src_file.stat().st_mtime > dst_file.stat().st_mtime:
+                    self.logger.info(f"[Job: {job_data['name']}] Updating modified file: {file}")
+                    shutil.copy2(src_file, dst_file)
+                    files_processed += 1
+                else:
+                    files_skipped += 1
         
-        self.logger.info(f"[Job: {job_data['name']}] Incremental sync completed ({files_processed} files)")
+        self.logger.info(f"[Job: {job_data['name']}] Incremental sync completed: {files_processed} copied, {files_skipped} skipped, {files_checked} total")
         
         return files_processed
     
