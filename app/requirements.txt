@@ -1,0 +1,27 @@
+# Core dependencies
+schedule==1.2.0
+pystray==0.19.5
+pillow==11.2.1
+plyer==2.1.0
+
+# Optional dependencies
+# pywin32==306  # Uncomment for Windows Service support (Windows only)
+
+# Standard library modules (included with Python)
+# tkinter - GUI framework (included with Python)
+# sqlite3 - Database (included with Python)
+# threading - Multithreading (included with Python)
+# datetime - Date/time handling (included with Python)
+# pathlib - Path manipulation (included with Python)
+# logging - Logging system (included with Python)
+# json - JSON handling (included with Python)
+# os - Operating system interface (included with Python)
+# shutil - File operations (included with Python)
+# hashlib - Hash functions (included with Python)
+# time - Time functions (included with Python)
+# sys - System-specific parameters (included with Python)
+# tempfile - Temporary files (included with Python)
+# io - Input/output (included with Python)
+# base64 - Base64 encoding (included with Python)
+# fcntl - File control (Unix/Linux only, included with Python)
+# msvcrt - Microsoft Visual C runtime (Windows only, included with Python)

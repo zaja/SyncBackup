@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncBackup v1.2 - Korisnički priručnik</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #2980b9;
+        }
+        .box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 15px 0;
+        }
+        .warning {
+            border-left-color: #f39c12;
+            background: #fff3cd;
+        }
+        .success {
+            border-left-color: #27ae60;
+            background: #d4edda;
+        }
+        ul {
+            margin: 10px 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #f8f9fa;
+        }
+        .author {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>SyncBackup v1.2 - Korisnički priručnik</h1>
+    <p style="text-align: center; color: #666;">Autor: Goran Zajec | Web: <a href="https://svejedobro.hr">https://svejedobro.hr</a></p>
+
+    <h2>📖 Uvod</h2>
+    <p>SyncBackup je aplikacija za automatsko backup-iranje i sinkronizaciju foldera. Podržava dva tipa job-ova, automatsko planiranje, SQLite bazu podataka i system tray funkcionalnost.</p>
+
+    <div class="box success">
+        <strong>Glavne značajke:</strong>
+        <ul>
+            <li>Dashboard s pregledom statistika</li>
+            <li>Simple i Incremental job-ovi</li>
+            <li>Automatsko planiranje izvršavanja</li>
+            <li>ZIP kompresija backup-ova</li>
+            <li>Filtriranje datoteka (exclude patterns)</li>
+            <li>Desktop notifikacije</li>
+            <li>System tray podrška</li>
+        </ul>
+    </div>
+	
+	<div class="box" style="background: #e8f4f8; border-left-color: #2980b9;">
+    <h2 style="margin-top: 0;">💡 Zašto SyncBackup?</h2>
+    <p>SyncBackup je nastao iz osobne potrebe nakon što sam nekoliko puta izgubio dane ili tjedne rada na projektima. Najdramatičniji slučaj bio je kada sam radio na WordPress pluginu više od tjedan dana, i tokom testiranja uninstall funkcije slučajno obrisao cijeli project folder. U tom trenutku mi je postalo kristalno jasno - ovo se više ne smije dogoditi.</p>
+    
+    <p>Potražio sam postojeća rješenja za backup i sinkronizaciju, ali:</p>
+    <ul>
+        <li>Većina je preteška i preglomazna za moje potrebe</li>
+        <li>Spore su i troše previše resursa</li>
+        <li>Često nisu intuitivne za korištenje</li>
+        <li>Nisu fleksibilne za različite scenarije backup-a</li>
+    </ul>
+    
+    <p><strong>Rješenje?</strong> Napraviti vlastitu aplikaciju koja je:</p>
+    <ul>
+        <li>✅ <strong>Brza i lagana</strong> - bez nepotrebnih funkcija</li>
+        <li>✅ <strong>Jednostavna</strong> - intuitivno sučelje</li>
+        <li>✅ <strong>Fleksibilna</strong> - Simple i Incremental backup-ovi</li>
+        <li>✅ <strong>Automatska</strong> - postaviš i zaboraviš</li>
+        <li>✅ <strong>Pouzdana</strong> - nikad više izgubljeni projekti</li>
+    </ul>
+    
+    <p style="margin-bottom: 0;"><em>Ako razvijaš software, radiš na važnim dokumentima, ili jednostavno ne želiš ponovno doživjeti taj osjećaj kada shvatiš da su sati ili dani rada nestali - ova aplikacija je za tebe.</em></p>
+</div>
+
+    <h2>🚀 Brzi početak</h2>
+    
+    <h3>Instalacija i pokretanje</h3>
+    <ol>
+        <li>Instaliraj potrebne module: <code>pip install -r app/requirements.txt</code></li>
+        <li>Pokreni aplikaciju: <code>dvoklik na main.pyw</code> ili <code>python main.py</code></li>
+    </ol>
+
+    <h3>Kreiranje prvog job-a</h3>
+    <ol>
+        <li>Klikni <strong>"➕ New Job"</strong></li>
+        <li>Unesi naziv job-a</li>
+        <li>Odaberi tip (Simple ili Incremental)</li>
+        <li>Postavi source i destination foldere</li>
+        <li>Konfiguriraj raspored</li>
+        <li>Označi "Active" za automatsko pokretanje</li>
+        <li>Klikni "Save"</li>
+    </ol>
+
+    <h2>📁 Tipovi job-ova</h2>
+
+    <h3>Simple Job</h3>
+    <div class="box">
+        <p><strong>Kako radi:</strong> Kreira potpunu kopiju source foldera s datumom i vremenom u nazivu.</p>
+        <p><strong>Primjer:</strong> <code>Dokumenti_20251002_143000</code></p>
+        <p><strong>Dodatne opcije:</strong></p>
+        <ul>
+            <li><strong>ZIP Compression:</strong> Kompresija kao ZIP datoteka</li>
+            <li><strong>Exclude Patterns:</strong> Isključi datoteke (.git, node_modules, __pycache__)</li>
+            <li><strong>Desktop Notifications:</strong> Obavijesti o završetku</li>
+        </ul>
+    </div>
+
+    <h3>Incremental Job</h3>
+    <div class="box">
+        <p><strong>Kako radi:</strong> Radi s dva koncepta:</p>
+        <ul>
+            <li><strong>Sync Directory:</strong> Ažurna radna kopija (destination/folder_name/)</li>
+            <li><strong>Snapshots:</strong> Periodičke arhivske kopije (destination/folder_INCREMENTAL_timestamp/)</li>
+        </ul>
+        <p><strong>Opcije:</strong></p>
+        <ul>
+            <li><strong>Preserve deleted files:</strong> Zadrži obrisane datoteke</li>
+            <li><strong>Create snapshots:</strong> Omogući snapshot-ove</li>
+            <li><strong>Snapshot interval:</strong> Interval snapshot-ova</li>
+            <li><strong>Exclude Patterns:</strong> Isključi datoteke</li>
+            <li><strong>Desktop Notifications:</strong> Obavijesti o završetku</li>
+        </ul>
+    </div>
+
+    <div class="box warning">
+        <strong>Važno:</strong> U Backup Files tabu vidiš samo snapshot-ove, ne sync directory. Sync directory je radna kopija, snapshot-ovi su arhivski backup-ovi.
+    </div>
+
+    <h2>⏰ Planiranje</h2>
+    <table>
+        <tr>
+            <th>Opcija</th>
+            <th>Opis</th>
+            <th>Primjer</th>
+        </tr>
+        <tr>
+            <td>Every X minutes</td>
+            <td>Svakih X minuta</td>
+            <td>30 minuta</td>
+        </tr>
+        <tr>
+            <td>Every X hours</td>
+            <td>Svakih X sati</td>
+            <td>6 sati</td>
+        </tr>
+        <tr>
+            <td>Daily</td>
+            <td>Dnevno u određeno vrijeme</td>
+            <td>20:00</td>
+        </tr>
+        <tr>
+            <td>Weekly</td>
+            <td>Tjedno određenog dana</td>
+            <td>Nedjelja</td>
+        </tr>
+        <tr>
+            <td>Monthly</td>
+            <td>Mjesečno određenog dana</td>
+            <td>1. u mjesecu</td>
+        </tr>
+    </table>
+
+    <h2>🖥️ Korisničko sučelje</h2>
+
+    <h3>Tabovi</h3>
+    <ul>
+        <li><strong>📊 Dashboard:</strong> Statistike, uspješnost, sljedeći backup, aktivnost</li>
+        <li><strong>📋 Jobs:</strong> Lista job-ova s kontrolnim gumbovima</li>
+        <li><strong>📝 Logs:</strong> Logovi izvršavanja s filterima</li>
+        <li><strong>🗂️ Backup Files:</strong> Pregled i upravljanje backup datotekama</li>
+    </ul>
+
+    <h3>Kontrolni gumbovi (vidljivi samo u Jobs tabu)</h3>
+    <ul>
+        <li><strong>➕ New Job:</strong> Kreira novi job (uvijek vidljiv)</li>
+        <li><strong>✏️ Edit Selected:</strong> Uređuje odabrani job</li>
+        <li><strong>🗑️ Delete Job:</strong> Briše job</li>
+        <li><strong>📁 Open Destination:</strong> Otvara destination folder</li>
+        <li><strong>▶ Activate Job:</strong> Aktivira job</li>
+        <li><strong>⏸ Deactivate Job:</strong> Deaktivira job</li>
+        <li><strong>▶ Run Selected:</strong> Pokreće job odmah</li>
+    </ul>
+
+    <div class="box">
+        <strong>Pametno sučelje:</strong> Kontrolni gumbovi su vidljivi samo kada je aktivan Jobs tab. Ovo čini sučelje čišćim i jasnijim.
+    </div>
+
+    <h2>🔽 System Tray</h2>
+    <p>Aplikacija može raditi u pozadini. Minimiziranje šalje aplikaciju u system tray, X gumb zatvara aplikaciju.</p>
+    <ul>
+        <li><strong>Minimize:</strong> Šalje u tray</li>
+        <li><strong>X gumb:</strong> Pita za potvrdu zatvaranja</li>
+        <li><strong>Desni klik na tray ikonu:</strong> Show/Quit opcije</li>
+    </ul>
+
+    <h2>⚙️ Dodatne funkcionalnosti</h2>
+
+    <h3>Exclude Patterns</h3>
+    <p>Isključi određene datoteke/foldere iz backup-a. Primjeri:</p>
+    <ul>
+        <li><code>.git,node_modules,__pycache__</code></li>
+        <li><code>*.tmp,*.log,Thumbs.db</code></li>
+        <li><code>cache/*,temp/*</code></li>
+    </ul>
+
+    <h3>ZIP Compression</h3>
+    <p>Dostupno samo za Simple job-ove. Kompresira backup kao ZIP datoteku za uštedu prostora.</p>
+
+    <h3>Desktop Notifications</h3>
+    <p>Prikazuje obavijesti kada job završi:</p>
+    <ul>
+        <li><strong>Uspjeh:</strong> Zelena obavijest s brojem datoteka</li>
+        <li><strong>Greška:</strong> Crvena obavijest s opisom greške</li>
+        <li><strong>Preskočeno:</strong> Žuta obavijest (nema promjena)</li>
+    </ul>
+
+    <h3>File Retention Policy</h3>
+    <p>Automatsko brisanje starih backup-ova:</p>
+    <ul>
+        <li><strong>Keep Count:</strong> Zadrži zadnjih N backup-ova</li>
+        <li><strong>Keep Days:</strong> Zadrži backup-ove N dana</li>
+        <li><strong>Keep Size:</strong> Zadrži do N MB</li>
+    </ul>
+
+    <h2>🗃️ Baza podataka</h2>
+    <p>Aplikacija koristi SQLite bazu (<code>app/sync_backup.db</code>) za:</p>
+    <ul>
+        <li>Konfiguracije job-ova</li>
+        <li>Hash vrijednosti za detekciju promjena</li>
+        <li>Logove izvršavanja</li>
+        <li>Praćenje backup datoteka</li>
+        <li>Retention policy pravila</li>
+    </ul>
+
+    <h2>🛠️ Rješavanje problema</h2>
+
+    <h3>Job se ne pokreće</h3>
+    <ul>
+        <li>Provjeri je li job aktivan</li>
+        <li>Provjeri "Next Run" kolonu</li>
+        <li>Pogledaj logove za greške</li>
+    </ul>
+
+    <h3>Backup je prazan</h3>
+    <ul>
+        <li>Provjeri postoji li source folder</li>
+        <li>Provjeri dozvole za čitanje/pisanje</li>
+        <li>Provjeri exclude patterns</li>
+    </ul>
+
+    <h3>Aplikacija se ne pokreće</h3>
+    <ul>
+        <li>Provjeri jesu li instalirani svi moduli</li>
+        <li>Pokreni iz command prompt-a za greške</li>
+        <li>Provjeri Python verziju (3.7+)</li>
+    </ul>
+
+    <h2>📝 Changelog</h2>
+
+    <h3>v1.2 (2025-10-02)</h3>
+    <ul>
+        <li>Dashboard tab s statistikama</li>
+        <li>Open Destination gumb</li>
+        <li>File exclusion patterns</li>
+        <li>Desktop notifications</li>
+        <li>ZIP compression</li>
+        <li>Uvjetna vidljivost gumbova</li>
+        <li>Poboljšani job dialog</li>
+    </ul>
+
+    <h3>v1.1 (2025-10-02)</h3>
+    <ul>
+        <li>Migracija na SQLite bazu</li>
+        <li>System tray funkcionalnost</li>
+        <li>Single instance enforcement</li>
+        <li>Multi-selection podrška</li>
+        <li>Detekcija nedostajućih datoteka</li>
+    </ul>
+
+    <div class="author">
+        <p><strong>Autor:</strong> Goran Zajec<br>
+        <strong>Web:</strong> <a href="https://svejedobro.hr">https://svejedobro.hr</a></p>
+    </div>
+</body>
+</html>
