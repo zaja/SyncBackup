@@ -451,6 +451,9 @@ class SyncBackupApp:
                 self.calculate_next_run(job)
         self.job_manager.save_jobs()
         
+        # Refresh dashboard with initial data
+        self.root.after(100, self.refresh_dashboard)
+        
         # Set initial button visibility (Dashboard tab is selected by default)
         self.root.after(100, self.update_button_visibility)
     
@@ -1280,10 +1283,14 @@ class SyncBackupApp:
             service_btn_frame1 = ttk.Frame(service_frame)
             service_btn_frame1.pack(anchor=tk.W, pady=(15, 5))
             
-            ttk.Button(service_btn_frame1, text=self._("buttons.install_service"), 
-                      command=self.install_service).pack(side=tk.LEFT, padx=(0, 10))
-            ttk.Button(service_btn_frame1, text=self._("buttons.uninstall_service"), 
-                      command=self.uninstall_service).pack(side=tk.LEFT, padx=(0, 10))
+            self.install_service_btn = ttk.Button(service_btn_frame1, text=self._("buttons.install_service"), 
+                      command=self.install_service)
+            self.install_service_btn.pack(side=tk.LEFT, padx=(0, 10))
+            
+            self.uninstall_service_btn = ttk.Button(service_btn_frame1, text=self._("buttons.uninstall_service"), 
+                      command=self.uninstall_service)
+            self.uninstall_service_btn.pack(side=tk.LEFT, padx=(0, 10))
+            
             ttk.Button(service_btn_frame1, text=self._("buttons.service_status"), 
                       command=self.check_service_status).pack(side=tk.LEFT)
             
@@ -1291,12 +1298,20 @@ class SyncBackupApp:
             service_btn_frame2 = ttk.Frame(service_frame)
             service_btn_frame2.pack(anchor=tk.W, pady=(5, 0))
             
-            ttk.Button(service_btn_frame2, text="▶ Start Service", 
-                      command=self.start_service_action).pack(side=tk.LEFT, padx=(0, 10))
-            ttk.Button(service_btn_frame2, text="⏸ Stop Service", 
-                      command=self.stop_service_action).pack(side=tk.LEFT, padx=(0, 10))
-            ttk.Button(service_btn_frame2, text="🔄 Restart Service", 
-                      command=self.restart_service_action).pack(side=tk.LEFT)
+            self.start_service_btn = ttk.Button(service_btn_frame2, text="▶ Start Service", 
+                      command=self.start_service_action)
+            self.start_service_btn.pack(side=tk.LEFT, padx=(0, 10))
+            
+            self.stop_service_btn = ttk.Button(service_btn_frame2, text="⏸ Stop Service", 
+                      command=self.stop_service_action)
+            self.stop_service_btn.pack(side=tk.LEFT, padx=(0, 10))
+            
+            self.restart_service_btn = ttk.Button(service_btn_frame2, text="🔄 Restart Service", 
+                      command=self.restart_service_action)
+            self.restart_service_btn.pack(side=tk.LEFT)
+            
+            # Update button states based on current service status
+            self.update_service_button_states()
         
         # Save button
         save_btn_frame = ttk.Frame(main_container)
@@ -1319,6 +1334,7 @@ class SyncBackupApp:
             
             if not PYWIN32_AVAILABLE:
                 self.service_status_label.config(text="⚪ Not Available", fg="gray")
+                self.update_service_button_states()
                 return
             
             if is_service_running():
@@ -1329,8 +1345,51 @@ class SyncBackupApp:
                     self.service_status_label.config(text="⚪ Not Installed", fg="gray")
                 else:
                     self.service_status_label.config(text=f"🔴 {status}", fg="red")
+            
+            # Update button states
+            self.update_service_button_states()
         except Exception as e:
             self.service_status_label.config(text="⚪ Unknown", fg="gray")
+            self.update_service_button_states()
+    
+    def update_service_button_states(self):
+        """Update service button states based on current service status"""
+        if not hasattr(self, 'install_service_btn'):
+            return
+        
+        try:
+            from app.windows_service import is_service_running, get_service_status, PYWIN32_AVAILABLE
+            
+            if not PYWIN32_AVAILABLE:
+                # Disable all service buttons if pywin32 not available
+                self.install_service_btn.config(state='disabled')
+                self.uninstall_service_btn.config(state='disabled')
+                self.start_service_btn.config(state='disabled')
+                self.stop_service_btn.config(state='disabled')
+                self.restart_service_btn.config(state='disabled')
+                return
+            
+            status = get_service_status()
+            is_installed = "Not installed" not in status and "error" not in status.lower()
+            is_running = is_service_running()
+            
+            # Install button: enabled only if NOT installed
+            self.install_service_btn.config(state='normal' if not is_installed else 'disabled')
+            
+            # Uninstall button: enabled only if installed
+            self.uninstall_service_btn.config(state='normal' if is_installed else 'disabled')
+            
+            # Start button: enabled only if installed and NOT running
+            self.start_service_btn.config(state='normal' if (is_installed and not is_running) else 'disabled')
+            
+            # Stop button: enabled only if running
+            self.stop_service_btn.config(state='normal' if is_running else 'disabled')
+            
+            # Restart button: enabled only if running
+            self.restart_service_btn.config(state='normal' if is_running else 'disabled')
+            
+        except Exception as e:
+            print(f"Error updating service button states: {e}")
     
     def save_settings(self):
         """Save application settings"""
