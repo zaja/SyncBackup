@@ -225,6 +225,28 @@ def get_service_status():
     except Exception as e:
         return f"Not installed or error: {e}"
 
+def is_service_running():
+    """Check if the Windows service is currently running"""
+    if not PYWIN32_AVAILABLE:
+        return False
+    
+    try:
+        status = win32serviceutil.QueryServiceStatus(ServiceClass._svc_name_)
+        return status[1] == win32service.SERVICE_RUNNING
+    except:
+        return False
+
+def get_service_status_code():
+    """Get the Windows service status code"""
+    if not PYWIN32_AVAILABLE:
+        return None
+    
+    try:
+        status = win32serviceutil.QueryServiceStatus(ServiceClass._svc_name_)
+        return status[1]  # Returns status code
+    except:
+        return None
+
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         # No arguments - try to start as service

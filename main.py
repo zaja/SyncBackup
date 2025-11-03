@@ -1203,7 +1203,20 @@ class SyncBackupApp:
             service_frame = ttk.LabelFrame(main_container, text=self._("settings.service_section"), padding=20)
             service_frame.pack(fill=tk.X, pady=(0, 20))
             
-            ttk.Label(service_frame, text=self._("settings.run_as_service"), font=("Arial", 10)).pack(anchor=tk.W, pady=(0, 10))
+            # Service status indicator
+            status_frame = ttk.Frame(service_frame)
+            status_frame.pack(anchor=tk.W, pady=(0, 15))
+            
+            ttk.Label(status_frame, text=self._("settings.run_as_service"), font=("Arial", 10)).pack(side=tk.LEFT, padx=(0, 10))
+            
+            # Check service status and show indicator
+            self.service_status_label = tk.Label(status_frame, text="", font=("Arial", 10, "bold"))
+            self.service_status_label.pack(side=tk.LEFT)
+            self.update_service_status_indicator()
+            
+            # Refresh button for status
+            ttk.Button(status_frame, text="🔄", width=3, 
+                      command=self.update_service_status_indicator).pack(side=tk.LEFT, padx=(5, 0))
             
             self.run_as_service_var = tk.BooleanVar(value=self.db_manager.get_setting('run_as_service', '0') == '1')
             
@@ -1234,6 +1247,29 @@ class SyncBackupApp:
         # Configure accent button style
         style = ttk.Style()
         style.configure("Accent.TButton", font=("Arial", 11, "bold"))
+    
+    def update_service_status_indicator(self):
+        """Update service status indicator in Settings tab"""
+        if not hasattr(self, 'service_status_label'):
+            return
+        
+        try:
+            from app.windows_service import is_service_running, get_service_status, PYWIN32_AVAILABLE
+            
+            if not PYWIN32_AVAILABLE:
+                self.service_status_label.config(text="⚪ Not Available", fg="gray")
+                return
+            
+            if is_service_running():
+                self.service_status_label.config(text="🟢 Running", fg="green")
+            else:
+                status = get_service_status()
+                if "Not installed" in status or "error" in status.lower():
+                    self.service_status_label.config(text="⚪ Not Installed", fg="gray")
+                else:
+                    self.service_status_label.config(text=f"🔴 {status}", fg="red")
+        except Exception as e:
+            self.service_status_label.config(text="⚪ Unknown", fg="gray")
     
     def save_settings(self):
         """Save application settings"""
@@ -1281,6 +1317,7 @@ class SyncBackupApp:
                     messagebox.showinfo("Success", 
                                       "Service installed successfully!\n\n"
                                       "You can start it from the Service Status button or from Windows Services.")
+                    self.update_service_status_indicator()  # Refresh status
                 else:
                     messagebox.showerror("Error", "Failed to install service. Check console for details.")
         except Exception as e:
@@ -1312,6 +1349,7 @@ class SyncBackupApp:
                 
                 if uninstall_service():
                     messagebox.showinfo("Success", "Service uninstalled successfully!")
+                    self.update_service_status_indicator()  # Refresh status
                 else:
                     messagebox.showerror("Error", "Failed to uninstall service. Check console for details.")
         except Exception as e:
