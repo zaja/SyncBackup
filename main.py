@@ -505,7 +505,7 @@ class SyncBackupApp:
         """Osvježi Dashboard statistike"""
         try:
             # Check if dashboard is fully initialized
-            if not hasattr(self, 'dashboard_cards') or len(self.dashboard_cards) < 4:
+            if not hasattr(self, 'dashboard_cards') or len(self.dashboard_cards) < 3:
                 return
             
             if not hasattr(self, 'activity_text'):
@@ -1102,8 +1102,30 @@ class SyncBackupApp:
         settings_frame = ttk.Frame(self.notebook)
         self.notebook.add(settings_frame, text="⚙️ Settings")
         
+        # Create canvas with scrollbar for scrollable content
+        canvas = tk.Canvas(settings_frame, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(settings_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Pack canvas and scrollbar
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Enable mousewheel scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
         # Main container with padding
-        main_container = ttk.Frame(settings_frame)
+        main_container = ttk.Frame(scrollable_frame)
         main_container.pack(fill=tk.BOTH, expand=True, padx=40, pady=40)
         
         # Title
