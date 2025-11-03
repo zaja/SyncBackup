@@ -94,12 +94,10 @@ class SyncBackupService:
         
         self.logger.info("SyncBackup service running in background mode")
         
-        # Import scheduler components
+        # Import required modules
         from datetime import datetime, timedelta
         import threading
-        
-        # Load jobs
-        jobs_data = db_manager.get_jobs()
+        import shutil
         
         # Service loop - check for jobs every minute
         while self.is_running:
@@ -117,10 +115,17 @@ class SyncBackupService:
                         try:
                             next_run_dt = datetime.strptime(next_run, "%Y-%m-%d %H:%M:%S")
                             if next_run_dt <= datetime.now():
-                                # Job should run
-                                self.logger.info(f"Job '{job_data['name']}' scheduled to run")
-                                # Note: Actual job execution would be implemented here
-                                # For now, we just log that it should run
+                                # Job should run - execute in separate thread
+                                self.logger.info(f"Job '{job_data['name']}' scheduled to run - executing...")
+                                
+                                # Execute job in background thread
+                                job_thread = threading.Thread(
+                                    target=self.execute_job_background,
+                                    args=(job_data, db_manager),
+                                    daemon=True
+                                )
+                                job_thread.start()
+                                
                         except Exception as e:
                             self.logger.error(f"Error checking job schedule: {e}")
                 
@@ -133,6 +138,177 @@ class SyncBackupService:
                 time.sleep(60)
         
         self.logger.info("Service stopped")
+    
+    def execute_job_background(self, job_data, db_manager):
+        """Execute job in background without GUI"""
+        import shutil
+        from datetime import datetime, timedelta
+        from pathlib import Path
+        
+        job_id = job_data['id']
+        job_name = job_data['name']
+        job_type = job_data['job_type']
+        source_path = Path(job_data['source_path'])
+        dest_path = Path(job_data['dest_path'])
+        
+        start_time = time.time()
+        
+        try:
+            self.logger.info(f"[Job: {job_name}] Starting execution (Type: {job_type})")
+            db_manager.add_job_log(job_id, "started", f"Job started by service")
+            
+            files_processed = 0
+            
+            # Execute based on job type
+            if job_type == "Simple":
+                files_processed = self.execute_simple_job_service(job_data, db_manager)
+            elif job_type == "Incremental":
+                files_processed = self.execute_incremental_job_service(job_data, db_manager)
+            else:
+                raise Exception(f"Unknown job type: {job_type}")
+            
+            # Update last_run and calculate next_run
+            last_run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            next_run = self.calculate_next_run_service(job_data)
+            
+            db_manager.update_job(job_id, {
+                'last_run': last_run,
+                'next_run': next_run,
+                'running': False
+            })
+            
+            duration = time.time() - start_time
+            self.logger.info(f"[Job: {job_name}] Completed successfully in {duration:.2f}s")
+            db_manager.add_job_log(job_id, "completed", "Job completed successfully", 
+                                  duration_seconds=duration, files_processed=files_processed)
+            
+        except Exception as e:
+            duration = time.time() - start_time
+            self.logger.error(f"[Job: {job_name}] Failed: {e}")
+            db_manager.add_job_log(job_id, "error", f"Job failed: {e}", 
+                                  duration_seconds=duration)
+            
+            # Update next_run even on failure
+            next_run = self.calculate_next_run_service(job_data)
+            db_manager.update_job(job_id, {
+                'next_run': next_run,
+                'running': False
+            })
+    
+    def execute_simple_job_service(self, job_data, db_manager):
+        """Execute Simple job without GUI"""
+        from pathlib import Path
+        from datetime import datetime
+        import shutil
+        
+        source_path = Path(job_data['source_path'])
+        dest_base = Path(job_data['dest_path'])
+        
+        if not source_path.exists():
+            raise Exception(f"Source path does not exist: {source_path}")
+        
+        # Create timestamped backup
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        folder_name = source_path.name
+        backup_name = f"{folder_name}_{timestamp}"
+        backup_path = dest_base / backup_name
+        
+        # Copy files
+        shutil.copytree(source_path, backup_path, dirs_exist_ok=True)
+        
+        # Count files
+        files_processed = len([f for f in backup_path.rglob('*') if f.is_file()])
+        
+        # Track backup file in database
+        db_manager.add_backup_file(
+            job_data['id'], 
+            str(backup_path), 
+            'simple_backup',
+            datetime.now().isoformat(),
+            self.get_folder_size_service(backup_path)
+        )
+        
+        self.logger.info(f"[Job: {job_data['name']}] Created backup: {backup_name} ({files_processed} files)")
+        
+        return files_processed
+    
+    def execute_incremental_job_service(self, job_data, db_manager):
+        """Execute Incremental job without GUI"""
+        from pathlib import Path
+        from datetime import datetime
+        import shutil
+        import os
+        
+        source_path = Path(job_data['source_path'])
+        dest_base = Path(job_data['dest_path'])
+        sync_path = dest_base / source_path.name
+        
+        if not source_path.exists():
+            raise Exception(f"Source path does not exist: {source_path}")
+        
+        # Create sync directory if it doesn't exist
+        sync_path.mkdir(parents=True, exist_ok=True)
+        
+        # Simple sync - copy all files
+        files_processed = 0
+        for root, dirs, files in os.walk(source_path):
+            root_path = Path(root)
+            rel_path = os.path.relpath(root, source_path)
+            dest_dir = sync_path / rel_path if rel_path != '.' else sync_path
+            
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            
+            for file in files:
+                src_file = root_path / file
+                dst_file = dest_dir / file
+                
+                # Copy if doesn't exist or is newer
+                if not dst_file.exists() or src_file.stat().st_mtime > dst_file.stat().st_mtime:
+                    shutil.copy2(src_file, dst_file)
+                    files_processed += 1
+        
+        self.logger.info(f"[Job: {job_data['name']}] Incremental sync completed ({files_processed} files)")
+        
+        return files_processed
+    
+    def calculate_next_run_service(self, job_data):
+        """Calculate next run time for job"""
+        from datetime import datetime, timedelta
+        
+        schedule_type = job_data.get('schedule_type', 'Daily')
+        schedule_value = job_data.get('schedule_value', '14:00')
+        
+        now = datetime.now()
+        
+        if schedule_type == "Every X minutes":
+            minutes = int(schedule_value)
+            next_run = now + timedelta(minutes=minutes)
+        elif schedule_type == "Every X hours":
+            hours = int(schedule_value)
+            next_run = now + timedelta(hours=hours)
+        elif schedule_type == "Daily":
+            # Parse time (HH:MM)
+            hour, minute = map(int, schedule_value.split(':'))
+            next_run = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            if next_run <= now:
+                next_run += timedelta(days=1)
+        else:
+            # Default to 24 hours
+            next_run = now + timedelta(days=1)
+        
+        return next_run.strftime("%Y-%m-%d %H:%M:%S")
+    
+    def get_folder_size_service(self, folder_path):
+        """Get folder size in bytes"""
+        from pathlib import Path
+        total_size = 0
+        try:
+            for file_path in Path(folder_path).rglob('*'):
+                if file_path.is_file():
+                    total_size += file_path.stat().st_size
+        except:
+            pass
+        return total_size
 
 # Make the service class inherit from ServiceFramework if pywin32 is available
 if PYWIN32_AVAILABLE:
