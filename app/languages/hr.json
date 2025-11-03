@@ -1,0 +1,199 @@
+{
+  "language_name": "Hrvatski",
+  "language_code": "hr",
+  
+  "window_title": "SyncBackup v1.3 - Sinkronizacija i Backup Foldera",
+  
+  "tabs": {
+    "dashboard": "Nadzorna Ploča",
+    "jobs": "Poslovi",
+    "log_viewer": "Pregled Logova",
+    "backup_files": "Backup Datoteke",
+    "settings": "⚙️ Postavke"
+  },
+  
+  "buttons": {
+    "new_job": "➕ Novi Posao",
+    "edit_selected": "✏️ Uredi Odabrano",
+    "delete_job": "❌ Obriši Posao",
+    "open_destination": "📁 Otvori Odredište",
+    "activate_job": "▶ Aktiviraj Posao",
+    "deactivate_job": "⏸ Deaktiviraj Posao",
+    "run_selected": "▶ Pokreni Odabrano",
+    "refresh": "🔄 Osvježi",
+    "delete_selected": "🗑️ Obriši Odabrano",
+    "clean_missing": "🧹 Očisti Nedostajuće",
+    "save_settings": "💾 Spremi Postavke",
+    "install_service": "Instaliraj Servis",
+    "uninstall_service": "Deinstaliraj Servis",
+    "service_status": "Status Servisa",
+    "browse": "Pretraži...",
+    "save": "Spremi",
+    "cancel": "Odustani"
+  },
+  
+  "dashboard": {
+    "title": "📊 SyncBackup Nadzorna Ploča",
+    "total_jobs": "Ukupno Poslova",
+    "active": "Aktivno",
+    "inactive": "Neaktivno",
+    "total_size": "Ukupna Veličina",
+    "all_backups": "Svi backupi",
+    "next_backup": "Sljedeći Backup",
+    "no_active_jobs": "Nema aktivnih poslova",
+    "recent_activity": "Nedavna Aktivnost (Zadnjih 24h)",
+    "no_recent_activity": "Nema nedavne aktivnosti u zadnjih 24 sata"
+  },
+  
+  "jobs": {
+    "name": "Naziv",
+    "type": "Tip",
+    "source": "Izvor",
+    "destination": "Odredište",
+    "schedule": "Raspored",
+    "status": "Status",
+    "running": "U Tijeku",
+    "last_run": "Zadnje Pokretanje",
+    "next_run": "Sljedeće Pokretanje",
+    "active": "Aktivan",
+    "inactive": "Neaktivan",
+    "never": "Nikad",
+    "yes": "Da",
+    "no": "Ne"
+  },
+  
+  "job_dialog": {
+    "new_job": "Novi Posao",
+    "edit_job": "Uredi Posao",
+    "job_name": "Naziv Posla",
+    "job_type": "Tip Posla",
+    "simple": "Jednostavan",
+    "incremental": "Inkrementalan",
+    "source_folder": "Izvorni Folder",
+    "destination_folder": "Odredišni Folder",
+    "schedule_type": "Tip Rasporeda",
+    "schedule_value": "Vrijednost Rasporeda",
+    "minutes": "minuta",
+    "hours": "sati",
+    "time": "Vrijeme (HH:MM)",
+    "day_of_week": "Dan u Tjednu",
+    "day_of_month": "Dan u Mjesecu",
+    "preserve_deleted": "Sačuvaj obrisane datoteke",
+    "create_snapshots": "Kreiraj snimke",
+    "snapshot_interval": "Interval snimaka (sati)",
+    "exclude_patterns": "Isključi uzorke (odvojeno zarezom)",
+    "enable_notifications": "Prikaži desktop notifikacije",
+    "compress_backup": "Kompresiraj backup kao ZIP",
+    "retention_policy": "Politika Zadržavanja",
+    "no_retention": "Bez politike zadržavanja",
+    "keep_count": "Zadrži zadnjih N backupa",
+    "keep_days": "Zadrži backupe N dana",
+    "keep_size": "Zadrži do N MB",
+    "retention_value": "Vrijednost Zadržavanja"
+  },
+  
+  "settings": {
+    "title": "⚙️ Postavke Aplikacije",
+    "language_section": "Jezik / Language",
+    "select_language": "Odaberite jezik aplikacije:",
+    "language_note": "Napomena: Promjena jezika će stupiti na snagu nakon ponovnog pokretanja aplikacije",
+    "notification_section": "Postavke Notifikacija",
+    "notification_mode": "Način notifikacija:",
+    "immediate": "Odmah - Prikaži notifikaciju za svaki backup posao",
+    "batch": "Grupno - Grupiraj notifikacije i prikaži sažetak",
+    "disabled": "Onemogućeno - Bez notifikacija",
+    "batch_interval": "Interval grupnih notifikacija (sekunde):",
+    "batch_note": "Grupni način grupira više notifikacija i prikazuje sažetak umjesto pojedinačnih popup-a",
+    "service_section": "Postavke Windows Servisa",
+    "run_as_service": "Pokreni kao Windows Servis:",
+    "enable_service": "Omogući Windows Servis način (zahtijeva restart)",
+    "service_note": "Napomena: Servis način omogućava aplikaciji da radi u pozadini bez korisničkog logina.\nZahtijeva administratorske privilegije za instalaciju/deinstalaciju servisa."
+  },
+  
+  "messages": {
+    "success": "Uspjeh",
+    "error": "Greška",
+    "warning": "Upozorenje",
+    "info": "Informacija",
+    "confirm": "Potvrdi",
+    "settings_saved": "Postavke uspješno spremljene!\n\nNeke postavke mogu zahtijevati ponovno pokretanje aplikacije.",
+    "select_job": "Molimo odaberite posao.",
+    "select_backup": "Molimo odaberite jednu ili više backup datoteka za brisanje.",
+    "confirm_delete_job": "Jeste li sigurni da želite obrisati ovaj posao?\n\nOvo će također obrisati sve povezane backup datoteke i logove.",
+    "confirm_delete_backup": "Jeste li sigurni da želite obrisati:\n{file}?",
+    "confirm_delete_backups": "Jeste li sigurni da želite obrisati {count} odabranih backup datoteka?",
+    "job_deleted": "Posao uspješno obrisan!",
+    "backup_deleted": "Backup datoteka(e) uspješno obrisane!",
+    "no_missing_files": "Nema nedostajućih backup datoteka u trenutnom prikazu.",
+    "confirm_clean_missing": "Pronađeno {count} zapisa u bazi za nedostajuće backup datoteke.\n\nŽelite li ukloniti ove zapise iz baze?\n\nNapomena: Ovo će ukloniti samo zapise u bazi, ne stvarne datoteke.",
+    "cleaned_records": "Uspješno očišćeno {count} zapisa.",
+    "quit_confirm": "Jeste li sigurni da želite zatvoriti SyncBackup?"
+  },
+  
+  "notifications": {
+    "backup_completed": "✅ Backup Završen",
+    "backup_failed": "❌ Backup Neuspješan",
+    "backup_skipped": "⏸️ Backup Preskočen",
+    "backup_summary": "📊 Sažetak Backupa ({count} poslova)",
+    "completed": "završeno",
+    "failed": "neuspješno",
+    "skipped": "preskočeno",
+    "no_changes": "Nema promjena",
+    "files_processed": "{count} datoteka obrađeno",
+    "duration": "Trajanje: {time}s"
+  },
+  
+  "log_viewer": {
+    "filter": "Filter:",
+    "all": "Sve",
+    "errors_only": "Samo Greške",
+    "success_only": "Samo Uspješno",
+    "export_log": "Izvezi Log",
+    "no_logs": "Nema logova u bazi podataka."
+  },
+  
+  "backup_files": {
+    "job": "Posao",
+    "type": "Tip",
+    "path": "Put Datoteke",
+    "created": "Kreirano",
+    "size": "Veličina",
+    "all": "Sve",
+    "simple_backup": "jednostavan_backup",
+    "incremental_snapshot": "inkrementalna_snimka"
+  },
+  
+  "schedule_types": {
+    "every_x_minutes": "Svakih X minuta",
+    "every_x_hours": "Svakih X sati",
+    "daily": "Dnevno u određeno vrijeme",
+    "weekly": "Tjedno na određeni dan",
+    "monthly": "Mjesečno na određeni dan"
+  },
+  
+  "days_of_week": {
+    "monday": "Ponedjeljak",
+    "tuesday": "Utorak",
+    "wednesday": "Srijeda",
+    "thursday": "Četvrtak",
+    "friday": "Petak",
+    "saturday": "Subota",
+    "sunday": "Nedjelja"
+  },
+  
+  "service": {
+    "install_title": "Instalacija Servisa",
+    "uninstall_title": "Deinstalacija Servisa",
+    "status_title": "Status Servisa",
+    "pywin32_missing": "pywin32 nije instaliran.\n\nMolimo instalirajte ga sa:\npip install pywin32\n\nZatim pokrenite kao administrator:\npython -m win32serviceutil install",
+    "admin_required": "Instalacija Windows Servisa zahtijeva administratorske privilegije.\n\nMolimo pokrenite aplikaciju kao administrator.",
+    "install_confirm": "Ovo će instalirati SyncBackup kao Windows Servis.\n\nServis će raditi u pozadini i pokretati se automatski sa Windowsima.\n\nNastaviti?",
+    "install_success": "Servis uspješno instaliran!\n\nMožete ga pokrenuti iz gumba Status Servisa ili iz Windows Servisa.",
+    "install_failed": "Neuspješna instalacija servisa. Provjerite konzolu za detalje.",
+    "uninstall_confirm": "Ovo će deinstalirati SyncBackup Windows Servis.\n\nNastaviti?",
+    "uninstall_success": "Servis uspješno deinstaliran!",
+    "uninstall_failed": "Neuspješna deinstalacija servisa. Provjerite konzolu za detalje.",
+    "status_unavailable": "pywin32 nije instaliran.\n\nFunkcionalnost servisa nije dostupna.",
+    "status_info": "SyncBackup Windows Servis\n\nStatus: {status}\n\nNapomena: Status servisa možete provjeriti i u Windows Servisima (services.msc)"
+  }
+}

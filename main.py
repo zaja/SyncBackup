@@ -426,12 +426,8 @@ class SyncBackupApp:
         size_card = self.create_stat_card(top_row, "💾 Total Size", "0 MB", "All backups", "#2196F3")
         size_card.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         
-        # Card 3: Success Rate
-        success_card = self.create_stat_card(top_row, "✅ Success Rate", "0%", "Last 30 days", "#FF9800")
-        success_card.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
-        
-        # Card 4: Next Backup
-        next_card = self.create_stat_card(top_row, "⏰ Next Backup", "None", "Scheduled", "#9C27B0")
+        # Card 3: Next Backup
+        next_card = self.create_stat_card(top_row, "⏰ Next Backup", "None", "No active jobs", "#9C27B0")
         next_card.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         # Bottom row - Recent Activity
@@ -527,10 +523,6 @@ class SyncBackupApp:
                 self.dashboard_cards['size']['value'].config(text=stats['total_size_str'])
                 self.dashboard_cards['size']['subtitle'].config(text="All backups")
             
-            if 'success' in self.dashboard_cards:
-                self.dashboard_cards['success']['value'].config(text=f"{stats['success_rate']:.1f}%")
-                self.dashboard_cards['success']['subtitle'].config(text="Last 30 days")
-            
             if 'next' in self.dashboard_cards:
                 self.dashboard_cards['next']['value'].config(text=stats['next_backup_time'])
                 self.dashboard_cards['next']['subtitle'].config(text=stats['next_backup_job'])
@@ -582,16 +574,8 @@ class SyncBackupApp:
                     except:
                         continue
             
-            if recent_logs:
-                # Count successful jobs (status: 'success' or 'completed')
-                successful = sum(1 for log in recent_logs 
-                               if log.get('status') in ['success', 'completed'])
-                stats['success_rate'] = (successful / len(recent_logs)) * 100
-            else:
-                stats['success_rate'] = 0
         except Exception as e:
-            print(f"Error calculating success rate: {e}")
-            stats['success_rate'] = 0
+            print(f"Error getting recent logs: {e}")
         
         # Next backup
         try:

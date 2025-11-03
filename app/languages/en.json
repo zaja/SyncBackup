@@ -1,0 +1,199 @@
+{
+  "language_name": "English",
+  "language_code": "en",
+  
+  "window_title": "SyncBackup v1.3 - Folder Sync & Backup",
+  
+  "tabs": {
+    "dashboard": "Dashboard",
+    "jobs": "Jobs",
+    "log_viewer": "Log Viewer",
+    "backup_files": "Backup Files",
+    "settings": "⚙️ Settings"
+  },
+  
+  "buttons": {
+    "new_job": "➕ New Job",
+    "edit_selected": "✏️ Edit Selected",
+    "delete_job": "❌ Delete Job",
+    "open_destination": "📁 Open Destination",
+    "activate_job": "▶ Activate Job",
+    "deactivate_job": "⏸ Deactivate Job",
+    "run_selected": "▶ Run Selected",
+    "refresh": "🔄 Refresh",
+    "delete_selected": "🗑️ Delete Selected",
+    "clean_missing": "🧹 Clean Missing",
+    "save_settings": "💾 Save Settings",
+    "install_service": "Install Service",
+    "uninstall_service": "Uninstall Service",
+    "service_status": "Service Status",
+    "browse": "Browse...",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  
+  "dashboard": {
+    "title": "📊 SyncBackup Dashboard",
+    "total_jobs": "Total Jobs",
+    "active": "Active",
+    "inactive": "Inactive",
+    "total_size": "Total Size",
+    "all_backups": "All backups",
+    "next_backup": "Next Backup",
+    "no_active_jobs": "No active jobs",
+    "recent_activity": "Recent Activity (Last 24h)",
+    "no_recent_activity": "No recent activity in the last 24 hours"
+  },
+  
+  "jobs": {
+    "name": "Name",
+    "type": "Type",
+    "source": "Source",
+    "destination": "Destination",
+    "schedule": "Schedule",
+    "status": "Status",
+    "running": "Running",
+    "last_run": "Last Run",
+    "next_run": "Next Run",
+    "active": "Active",
+    "inactive": "Inactive",
+    "never": "Never",
+    "yes": "Yes",
+    "no": "No"
+  },
+  
+  "job_dialog": {
+    "new_job": "New Job",
+    "edit_job": "Edit Job",
+    "job_name": "Job Name",
+    "job_type": "Job Type",
+    "simple": "Simple",
+    "incremental": "Incremental",
+    "source_folder": "Source Folder",
+    "destination_folder": "Destination Folder",
+    "schedule_type": "Schedule Type",
+    "schedule_value": "Schedule Value",
+    "minutes": "minutes",
+    "hours": "hours",
+    "time": "Time (HH:MM)",
+    "day_of_week": "Day of Week",
+    "day_of_month": "Day of Month",
+    "preserve_deleted": "Preserve deleted files",
+    "create_snapshots": "Create snapshots",
+    "snapshot_interval": "Snapshot interval (hours)",
+    "exclude_patterns": "Exclude patterns (comma-separated)",
+    "enable_notifications": "Show desktop notifications",
+    "compress_backup": "Compress backup as ZIP",
+    "retention_policy": "Retention Policy",
+    "no_retention": "No retention policy",
+    "keep_count": "Keep last N backups",
+    "keep_days": "Keep backups for N days",
+    "keep_size": "Keep up to N MB",
+    "retention_value": "Retention Value"
+  },
+  
+  "settings": {
+    "title": "⚙️ Application Settings",
+    "language_section": "Language / Jezik",
+    "select_language": "Select application language:",
+    "language_note": "Note: Language change will take effect after application restart",
+    "notification_section": "Notification Settings",
+    "notification_mode": "Notification mode:",
+    "immediate": "Immediate - Show notification for each backup job",
+    "batch": "Batch - Group notifications and show summary",
+    "disabled": "Disabled - No notifications",
+    "batch_interval": "Batch notification interval (seconds):",
+    "batch_note": "Batch mode groups multiple notifications and shows a summary instead of individual popups",
+    "service_section": "Windows Service Settings",
+    "run_as_service": "Run as Windows Service:",
+    "enable_service": "Enable Windows Service mode (requires restart)",
+    "service_note": "Note: Service mode allows the application to run in the background without user login.\nRequires administrator privileges to install/uninstall service."
+  },
+  
+  "messages": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "confirm": "Confirm",
+    "settings_saved": "Settings saved successfully!\n\nSome settings may require application restart to take effect.",
+    "select_job": "Please select a job.",
+    "select_backup": "Please select one or more backup files to delete.",
+    "confirm_delete_job": "Are you sure you want to delete this job?\n\nThis will also delete all associated backup files and logs.",
+    "confirm_delete_backup": "Are you sure you want to delete:\n{file}?",
+    "confirm_delete_backups": "Are you sure you want to delete {count} selected backup files?",
+    "job_deleted": "Job deleted successfully!",
+    "backup_deleted": "Backup file(s) deleted successfully!",
+    "no_missing_files": "No missing backup files found in current view.",
+    "confirm_clean_missing": "Found {count} database records for missing backup files.\n\nDo you want to remove these orphaned records from the database?\n\nNote: This will only remove database entries, not actual files.",
+    "cleaned_records": "Successfully cleaned {count} orphaned record(s).",
+    "quit_confirm": "Are you sure you want to quit SyncBackup?"
+  },
+  
+  "notifications": {
+    "backup_completed": "✅ Backup Completed",
+    "backup_failed": "❌ Backup Failed",
+    "backup_skipped": "⏸️ Backup Skipped",
+    "backup_summary": "📊 Backup Summary ({count} jobs)",
+    "completed": "completed",
+    "failed": "failed",
+    "skipped": "skipped",
+    "no_changes": "No changes detected",
+    "files_processed": "{count} files processed",
+    "duration": "Duration: {time}s"
+  },
+  
+  "log_viewer": {
+    "filter": "Filter:",
+    "all": "All",
+    "errors_only": "Errors Only",
+    "success_only": "Success Only",
+    "export_log": "Export Log",
+    "no_logs": "No logs found in database."
+  },
+  
+  "backup_files": {
+    "job": "Job",
+    "type": "Type",
+    "path": "File Path",
+    "created": "Created",
+    "size": "Size",
+    "all": "All",
+    "simple_backup": "simple_backup",
+    "incremental_snapshot": "incremental_snapshot"
+  },
+  
+  "schedule_types": {
+    "every_x_minutes": "Every X minutes",
+    "every_x_hours": "Every X hours",
+    "daily": "Daily at specific time",
+    "weekly": "Weekly on specific day",
+    "monthly": "Monthly on specific day"
+  },
+  
+  "days_of_week": {
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
+  },
+  
+  "service": {
+    "install_title": "Service Installation",
+    "uninstall_title": "Service Uninstallation",
+    "status_title": "Service Status",
+    "pywin32_missing": "pywin32 is not installed.\n\nPlease install it with:\npip install pywin32\n\nThen run as administrator:\npython -m win32serviceutil install",
+    "admin_required": "Installing a Windows Service requires administrator privileges.\n\nPlease run the application as administrator.",
+    "install_confirm": "This will install SyncBackup as a Windows Service.\n\nThe service will run in the background and start automatically with Windows.\n\nContinue?",
+    "install_success": "Service installed successfully!\n\nYou can start it from the Service Status button or from Windows Services.",
+    "install_failed": "Failed to install service. Check console for details.",
+    "uninstall_confirm": "This will uninstall the SyncBackup Windows Service.\n\nContinue?",
+    "uninstall_success": "Service uninstalled successfully!",
+    "uninstall_failed": "Failed to uninstall service. Check console for details.",
+    "status_unavailable": "pywin32 is not installed.\n\nService functionality is not available.",
+    "status_info": "SyncBackup Windows Service\n\nStatus: {status}\n\nNote: You can also check the service status in Windows Services (services.msc)"
+  }
+}
