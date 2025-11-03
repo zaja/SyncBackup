@@ -17,6 +17,7 @@ import shutil
 import hashlib
 import schedule
 from app.database import DatabaseManager
+from app.language_manager import LanguageManager
 from pathlib import Path
 import logging
 import sqlite3
@@ -243,7 +244,6 @@ class SyncBackupApp:
     
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("SyncBackup v1.3 - Folder Sync & Backup")
         self.root.geometry("1400x700")
         
         # Setup logging
@@ -261,6 +261,14 @@ class SyncBackupApp:
         self.db_manager = DatabaseManager(db_path)
         self.db_manager.migrate_from_json()  # Migrate existing data
         self.job_manager = JobManager(self.db_manager)
+        
+        # Initialize language manager and load saved language
+        self.lang_manager = LanguageManager()
+        saved_language = self.db_manager.get_setting('language', 'hr')
+        self.lang_manager.load_language(saved_language)
+        
+        # Set window title with translation
+        self.root.title(self.lang_manager.get('window_title'))
         
         # Initialize dashboard cards early to prevent AttributeError
         self.dashboard_cards = {}
@@ -1139,15 +1147,17 @@ class SyncBackupApp:
         
         ttk.Label(lang_frame, text="Select application language:", font=("Arial", 10)).pack(anchor=tk.W, pady=(0, 10))
         
-        self.language_var = tk.StringVar(value=self.db_manager.get_setting('language', 'hr'))
+        self.language_var = tk.StringVar(value=self.lang_manager.get_current_language())
         
         lang_options_frame = ttk.Frame(lang_frame)
         lang_options_frame.pack(anchor=tk.W)
         
-        ttk.Radiobutton(lang_options_frame, text="Hrvatski (Croatian)", 
-                       variable=self.language_var, value='hr').pack(side=tk.LEFT, padx=(0, 20))
-        ttk.Radiobutton(lang_options_frame, text="English", 
-                       variable=self.language_var, value='en').pack(side=tk.LEFT)
+        # Dynamically create radio buttons for all available languages
+        available_languages = self.lang_manager.get_available_languages()
+        for i, (code, name) in enumerate(available_languages.items()):
+            padx = (0, 20) if i < len(available_languages) - 1 else (0, 0)
+            ttk.Radiobutton(lang_options_frame, text=name, 
+                           variable=self.language_var, value=code).pack(side=tk.LEFT, padx=padx)
         
         ttk.Label(lang_frame, text="Note: Language change will take effect after application restart", 
                  font=("Arial", 9), foreground="gray").pack(anchor=tk.W, pady=(10, 0))
