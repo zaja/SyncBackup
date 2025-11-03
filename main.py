@@ -1276,16 +1276,27 @@ class SyncBackupApp:
             ttk.Label(service_frame, text=self._("settings.service_note"), 
                      font=("Arial", 9), foreground="gray").pack(anchor=tk.W, pady=(10, 0))
             
-            # Service control buttons
-            service_btn_frame = ttk.Frame(service_frame)
-            service_btn_frame.pack(anchor=tk.W, pady=(15, 0))
+            # Service control buttons - Row 1: Install/Uninstall/Status
+            service_btn_frame1 = ttk.Frame(service_frame)
+            service_btn_frame1.pack(anchor=tk.W, pady=(15, 5))
             
-            ttk.Button(service_btn_frame, text=self._("buttons.install_service"), 
+            ttk.Button(service_btn_frame1, text=self._("buttons.install_service"), 
                       command=self.install_service).pack(side=tk.LEFT, padx=(0, 10))
-            ttk.Button(service_btn_frame, text=self._("buttons.uninstall_service"), 
+            ttk.Button(service_btn_frame1, text=self._("buttons.uninstall_service"), 
                       command=self.uninstall_service).pack(side=tk.LEFT, padx=(0, 10))
-            ttk.Button(service_btn_frame, text=self._("buttons.service_status"), 
+            ttk.Button(service_btn_frame1, text=self._("buttons.service_status"), 
                       command=self.check_service_status).pack(side=tk.LEFT)
+            
+            # Service control buttons - Row 2: Start/Stop/Restart
+            service_btn_frame2 = ttk.Frame(service_frame)
+            service_btn_frame2.pack(anchor=tk.W, pady=(5, 0))
+            
+            ttk.Button(service_btn_frame2, text="▶ Start Service", 
+                      command=self.start_service_action).pack(side=tk.LEFT, padx=(0, 10))
+            ttk.Button(service_btn_frame2, text="⏸ Stop Service", 
+                      command=self.stop_service_action).pack(side=tk.LEFT, padx=(0, 10))
+            ttk.Button(service_btn_frame2, text="🔄 Restart Service", 
+                      command=self.restart_service_action).pack(side=tk.LEFT)
         
         # Save button
         save_btn_frame = ttk.Frame(main_container)
@@ -1406,6 +1417,68 @@ class SyncBackupApp:
                               f"Note: You can also check the service status in Windows Services (services.msc)")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to check service status:\n{e}")
+    
+    def start_service_action(self):
+        """Start Windows service"""
+        try:
+            from app.windows_service import start_service, PYWIN32_AVAILABLE
+            
+            if not PYWIN32_AVAILABLE:
+                messagebox.showerror("Error", "pywin32 is not installed.")
+                return
+            
+            if start_service():
+                messagebox.showinfo("Success", "Service started successfully!")
+                self.update_service_status_indicator()
+            else:
+                messagebox.showerror("Error", "Failed to start service.\n\nCheck if service is installed.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to start service:\n{e}")
+    
+    def stop_service_action(self):
+        """Stop Windows service"""
+        try:
+            from app.windows_service import stop_service, PYWIN32_AVAILABLE
+            
+            if not PYWIN32_AVAILABLE:
+                messagebox.showerror("Error", "pywin32 is not installed.")
+                return
+            
+            if messagebox.askyesno("Stop Service", 
+                                  "Are you sure you want to stop the service?\n\n"
+                                  "Scheduled backups will not run while the service is stopped."):
+                if stop_service():
+                    messagebox.showinfo("Success", "Service stopped successfully!")
+                    self.update_service_status_indicator()
+                else:
+                    messagebox.showerror("Error", "Failed to stop service.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to stop service:\n{e}")
+    
+    def restart_service_action(self):
+        """Restart Windows service"""
+        try:
+            from app.windows_service import stop_service, start_service, PYWIN32_AVAILABLE
+            
+            if not PYWIN32_AVAILABLE:
+                messagebox.showerror("Error", "pywin32 is not installed.")
+                return
+            
+            # Stop service
+            stop_service()
+            
+            # Wait a moment
+            import time
+            time.sleep(2)
+            
+            # Start service
+            if start_service():
+                messagebox.showinfo("Success", "Service restarted successfully!")
+                self.update_service_status_indicator()
+            else:
+                messagebox.showerror("Error", "Failed to restart service.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to restart service:\n{e}")
     
     def update_button_visibility(self):
         """Update button visibility based on current tab"""
