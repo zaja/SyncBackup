@@ -150,17 +150,19 @@ def install_service():
         return False
     
     try:
-        win32serviceutil.InstallService(
-            ServiceClass._svc_reg_class_,
-            ServiceClass._svc_name_,
-            ServiceClass._svc_display_name_,
-            startType=win32service.SERVICE_AUTO_START,
-            description=ServiceClass._svc_description_
-        )
+        # Get the service script path
+        service_script = os.path.abspath(__file__)
+        
+        # Install using HandleCommandLine
+        sys.argv = ['', 'install']
+        win32serviceutil.HandleCommandLine(ServiceClass)
+        
         print(f"Service '{ServiceClass._svc_display_name_}' installed successfully")
         return True
     except Exception as e:
         print(f"Error installing service: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def uninstall_service():
@@ -170,11 +172,16 @@ def uninstall_service():
         return False
     
     try:
-        win32serviceutil.RemoveService(ServiceClass._svc_name_)
+        # Uninstall using HandleCommandLine
+        sys.argv = ['', 'remove']
+        win32serviceutil.HandleCommandLine(ServiceClass)
+        
         print(f"Service '{ServiceClass._svc_display_name_}' uninstalled successfully")
         return True
     except Exception as e:
         print(f"Error uninstalling service: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def start_service():
