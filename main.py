@@ -1563,8 +1563,8 @@ class SyncBackupApp:
             selected_tab = self.notebook.select()
             tab_text = self.notebook.tab(selected_tab, "text")
             
-            # Show job buttons only on Jobs tab
-            if "Jobs" in tab_text:
+            # Show job buttons only on Jobs tab (check for both English and Croatian)
+            if "Jobs" in tab_text or "Poslovi" in tab_text:
                 # Show buttons by re-packing them in correct order
                 self.edit_btn.pack(side=tk.LEFT, padx=(0, 5))
                 self.delete_btn.pack(side=tk.LEFT, padx=(0, 5))
@@ -1594,8 +1594,8 @@ class SyncBackupApp:
             # Update button visibility based on current tab
             self.update_button_visibility()
             
-            # Refresh backup files when switching to Backup Files tab
-            if tab_text == "Backup Files":
+            # Refresh backup files when switching to Backup Files tab (check for both English and Croatian)
+            if "Backup Files" in tab_text or "Backup Datoteke" in tab_text:
                 print("Switching to Backup Files tab - refreshing...")
                 self.refresh_backup_files()
         except Exception as e:
