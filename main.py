@@ -1303,25 +1303,29 @@ class SyncBackupApp:
             if sys.platform != 'win32':
                 return False
             
-            # Get the script path
+            # Get the script/executable path
             if getattr(sys, 'frozen', False):
-                # Running as executable
-                script = sys.executable
+                # Running as executable - just run the exe
+                executable = sys.executable
+                params = ""
             else:
-                # Running as script
+                # Running as script - need to run python with script
+                executable = sys.executable  # python.exe
                 script = os.path.abspath(sys.argv[0])
-            
-            # Parameters
-            params = ' '.join([script] + sys.argv[1:])
+                # Quote the script path if it contains spaces
+                if ' ' in script:
+                    params = f'"{script}"'
+                else:
+                    params = script
             
             # Request elevation
             ret = ctypes.windll.shell32.ShellExecuteW(
-                None, "runas", sys.executable, params, None, 1
+                None, "runas", executable, params, None, 1
             )
             
             if ret > 32:  # Success
-                # Close current instance
-                self.root.quit()
+                # Close current instance after a short delay
+                self.root.after(500, self.root.quit)
                 return True
             else:
                 return False
