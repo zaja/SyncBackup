@@ -1,9 +1,20 @@
 # SyncBackup v1.4 - Advanced Folder Synchronization and Backup Application
 
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/zaja/SyncBackup)](https://github.com/zaja/SyncBackup/releases/latest)
+[![GitHub Release Date](https://img.shields.io/github/release-date/zaja/SyncBackup)](https://github.com/zaja/SyncBackup/releases/latest)
+[![GitHub Downloads](https://img.shields.io/github/downloads/zaja/SyncBackup/total)](https://github.com/zaja/SyncBackup/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/zaja/SyncBackup)](https://github.com/zaja/SyncBackup/stargazers)
+
 **Author:** Goran Zajec  
 **Website:** https://svejedobro.hr
 
 ![SyncBackup](https://raw.githubusercontent.com/zaja/SyncBackup/refs/heads/master/app/SyncBackup.png)
+
+## 📥 Download Latest Release
+
+**[📦 Download SyncBackup v1.4](https://github.com/zaja/SyncBackup/releases/latest)** - Windows Service Fixes & Improvements
+
+---
 
 ## 📋 Overview
 
