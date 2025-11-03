@@ -267,8 +267,13 @@ class SyncBackupApp:
         saved_language = self.db_manager.get_setting('language', 'hr')
         self.lang_manager.load_language(saved_language)
         
-        # Set window title with translation
-        self.root.title(self.lang_manager.get('window_title'))
+        # Set window title with translation and admin indicator
+        title = self.lang_manager.get('window_title')
+        if sys.platform == 'win32':
+            import ctypes
+            if ctypes.windll.shell32.IsUserAnAdmin():
+                title += " [Administrator]"
+        self.root.title(title)
         
         # Initialize dashboard cards early to prevent AttributeError
         self.dashboard_cards = {}
@@ -1289,6 +1294,41 @@ class SyncBackupApp:
         except Exception as e:
             messagebox.showerror(self._("messages.error"), f"Failed to save settings:\n{e}")
     
+    def restart_as_admin(self):
+        """Restart application with administrator privileges"""
+        try:
+            import ctypes
+            import sys
+            
+            if sys.platform != 'win32':
+                return False
+            
+            # Get the script path
+            if getattr(sys, 'frozen', False):
+                # Running as executable
+                script = sys.executable
+            else:
+                # Running as script
+                script = os.path.abspath(sys.argv[0])
+            
+            # Parameters
+            params = ' '.join([script] + sys.argv[1:])
+            
+            # Request elevation
+            ret = ctypes.windll.shell32.ShellExecuteW(
+                None, "runas", sys.executable, params, None, 1
+            )
+            
+            if ret > 32:  # Success
+                # Close current instance
+                self.root.quit()
+                return True
+            else:
+                return False
+        except Exception as e:
+            print(f"Error restarting as admin: {e}")
+            return False
+    
     def install_service(self):
         """Install Windows service"""
         try:
@@ -1304,9 +1344,15 @@ class SyncBackupApp:
             # Check if running as administrator
             import ctypes
             if not ctypes.windll.shell32.IsUserAnAdmin():
-                messagebox.showerror("Administrator Required", 
-                                   "Installing a Windows Service requires administrator privileges.\n\n"
-                                   "Please run the application as administrator.")
+                # Ask user if they want to restart with admin privileges
+                if messagebox.askyesno("Administrator Required", 
+                                      "Installing a Windows Service requires administrator privileges.\n\n"
+                                      "Would you like to restart the application as administrator?"):
+                    if self.restart_as_admin():
+                        return  # Application will restart with admin rights
+                    else:
+                        messagebox.showerror("Error", "Failed to restart with administrator privileges.\n\n"
+                                           "Please manually run the application as administrator.")
                 return
             
             if messagebox.askyesno("Install Service", 
@@ -1336,9 +1382,15 @@ class SyncBackupApp:
             # Check if running as administrator
             import ctypes
             if not ctypes.windll.shell32.IsUserAnAdmin():
-                messagebox.showerror("Administrator Required", 
-                                   "Uninstalling a Windows Service requires administrator privileges.\n\n"
-                                   "Please run the application as administrator.")
+                # Ask user if they want to restart with admin privileges
+                if messagebox.askyesno("Administrator Required", 
+                                      "Uninstalling a Windows Service requires administrator privileges.\n\n"
+                                      "Would you like to restart the application as administrator?"):
+                    if self.restart_as_admin():
+                        return  # Application will restart with admin rights
+                    else:
+                        messagebox.showerror("Error", "Failed to restart with administrator privileges.\n\n"
+                                           "Please manually run the application as administrator.")
                 return
             
             if messagebox.askyesno("Uninstall Service", 
