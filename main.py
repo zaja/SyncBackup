@@ -547,17 +547,18 @@ class SyncBackupApp:
         subtitle_label.pack(anchor=tk.W)
         
         # Store references for updates
-        # Create unique key based on title
-        if "Jobs" in title:
+        # Create unique key based on emoji icon (language-independent)
+        if "📋" in title:
             card_id = "jobs"
-        elif "Size" in title:
+        elif "💾" in title:
             card_id = "size"
-        elif "Success" in title:
-            card_id = "success"
-        elif "Next" in title:
+        elif "⏰" in title:
             card_id = "next"
+        elif "✅" in title:
+            card_id = "success"
         else:
-            card_id = title.split()[1].lower()
+            # Fallback to first word
+            card_id = title.split()[0].lower()
             
         self.dashboard_cards[card_id] = {
             'value': value_label,
@@ -1480,18 +1481,26 @@ class SyncBackupApp:
     def start_service_action(self):
         """Start Windows service"""
         try:
-            from app.windows_service import start_service, PYWIN32_AVAILABLE
+            from app.windows_service import start_service, is_service_running, PYWIN32_AVAILABLE
             
             if not PYWIN32_AVAILABLE:
                 messagebox.showerror("Error", "pywin32 is not installed.")
                 return
             
             if start_service():
-                # Wait a moment for service to fully start
+                # Wait for service to fully start (up to 5 seconds)
                 import time
-                time.sleep(1)
+                for i in range(10):
+                    time.sleep(0.5)
+                    if is_service_running():
+                        break
                 
-                messagebox.showinfo("Success", "Service started successfully!")
+                # Check final status
+                if is_service_running():
+                    messagebox.showinfo("Success", "Service started successfully!")
+                else:
+                    messagebox.showwarning("Warning", "Service start command sent, but status is still not Running.\n\nPlease check Windows Services (services.msc)")
+                
                 self.update_service_status_indicator()
             else:
                 messagebox.showerror("Error", "Failed to start service.\n\nCheck if service is installed.")
