@@ -242,7 +242,44 @@ class JobManager:
 class SyncBackupApp:
     """Glavna aplikacija"""
     
+    @staticmethod
+    def ensure_admin_privileges():
+        """Ensure application runs with administrator privileges on Windows"""
+        import ctypes
+        
+        try:
+            # Check if already running as admin
+            if ctypes.windll.shell32.IsUserAnAdmin():
+                return  # Already admin, continue
+            
+            # Not admin - request elevation
+            script = sys.executable
+            params = ""
+            
+            if not getattr(sys, 'frozen', False):
+                # Running as script
+                script_path = os.path.abspath(sys.argv[0])
+                params = f'"{script_path}"' if ' ' in script_path else script_path
+            
+            # Request elevation and exit current instance
+            ret = ctypes.windll.shell32.ShellExecuteW(
+                None, "runas", script, params, None, 1
+            )
+            
+            if ret > 32:
+                # Successfully requested elevation, exit this instance
+                sys.exit(0)
+            else:
+                # User cancelled or error - continue without admin
+                print("Warning: Running without administrator privileges. Service features will be limited.")
+        except Exception as e:
+            print(f"Error checking admin privileges: {e}")
+    
     def __init__(self):
+        # Check and request admin privileges on Windows
+        if sys.platform == 'win32':
+            self.ensure_admin_privileges()
+        
         self.root = tk.Tk()
         self.root.geometry("1400x700")
         
@@ -1294,45 +1331,6 @@ class SyncBackupApp:
         except Exception as e:
             messagebox.showerror(self._("messages.error"), f"Failed to save settings:\n{e}")
     
-    def restart_as_admin(self):
-        """Restart application with administrator privileges"""
-        try:
-            import ctypes
-            import sys
-            
-            if sys.platform != 'win32':
-                return False
-            
-            # Get the script/executable path
-            if getattr(sys, 'frozen', False):
-                # Running as executable - just run the exe
-                executable = sys.executable
-                params = ""
-            else:
-                # Running as script - need to run python with script
-                executable = sys.executable  # python.exe
-                script = os.path.abspath(sys.argv[0])
-                # Quote the script path if it contains spaces
-                if ' ' in script:
-                    params = f'"{script}"'
-                else:
-                    params = script
-            
-            # Request elevation
-            ret = ctypes.windll.shell32.ShellExecuteW(
-                None, "runas", executable, params, None, 1
-            )
-            
-            if ret > 32:  # Success
-                # Close current instance after a short delay
-                self.root.after(500, self.root.quit)
-                return True
-            else:
-                return False
-        except Exception as e:
-            print(f"Error restarting as admin: {e}")
-            return False
-    
     def install_service(self):
         """Install Windows service"""
         try:
@@ -1341,22 +1339,7 @@ class SyncBackupApp:
             if not PYWIN32_AVAILABLE:
                 messagebox.showerror("Service Installation", 
                                    "pywin32 is not installed.\n\n"
-                                   "Please install it with:\npip install pywin32\n\n"
-                                   "Then run as administrator:\npython -m win32serviceutil install")
-                return
-            
-            # Check if running as administrator
-            import ctypes
-            if not ctypes.windll.shell32.IsUserAnAdmin():
-                # Ask user if they want to restart with admin privileges
-                if messagebox.askyesno("Administrator Required", 
-                                      "Installing a Windows Service requires administrator privileges.\n\n"
-                                      "Would you like to restart the application as administrator?"):
-                    if self.restart_as_admin():
-                        return  # Application will restart with admin rights
-                    else:
-                        messagebox.showerror("Error", "Failed to restart with administrator privileges.\n\n"
-                                           "Please manually run the application as administrator.")
+                                   "Please install it with:\npip install pywin32")
                 return
             
             if messagebox.askyesno("Install Service", 
@@ -1381,20 +1364,6 @@ class SyncBackupApp:
             if not PYWIN32_AVAILABLE:
                 messagebox.showerror("Service Uninstallation", 
                                    "pywin32 is not installed.")
-                return
-            
-            # Check if running as administrator
-            import ctypes
-            if not ctypes.windll.shell32.IsUserAnAdmin():
-                # Ask user if they want to restart with admin privileges
-                if messagebox.askyesno("Administrator Required", 
-                                      "Uninstalling a Windows Service requires administrator privileges.\n\n"
-                                      "Would you like to restart the application as administrator?"):
-                    if self.restart_as_admin():
-                        return  # Application will restart with admin rights
-                    else:
-                        messagebox.showerror("Error", "Failed to restart with administrator privileges.\n\n"
-                                           "Please manually run the application as administrator.")
                 return
             
             if messagebox.askyesno("Uninstall Service", 
