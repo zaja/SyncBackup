@@ -253,11 +253,17 @@ class SyncBackupApp:
                 return  # Already admin, continue
             
             # Not admin - request elevation
-            script = sys.executable
-            params = ""
-            
-            if not getattr(sys, 'frozen', False):
-                # Running as script
+            if getattr(sys, 'frozen', False):
+                # Running as executable
+                script = sys.executable
+                params = ""
+            else:
+                # Running as script - use pythonw.exe to avoid console window
+                python_dir = os.path.dirname(sys.executable)
+                pythonw = os.path.join(python_dir, 'pythonw.exe')
+                
+                # Use pythonw if available, otherwise use python
+                script = pythonw if os.path.exists(pythonw) else sys.executable
                 script_path = os.path.abspath(sys.argv[0])
                 params = f'"{script_path}"' if ' ' in script_path else script_path
             
@@ -267,13 +273,18 @@ class SyncBackupApp:
             )
             
             if ret > 32:
-                # Successfully requested elevation, exit this instance
-                sys.exit(0)
+                # Successfully requested elevation, exit immediately
+                import os
+                os._exit(0)  # Force exit without cleanup
             else:
-                # User cancelled or error - continue without admin
-                print("Warning: Running without administrator privileges. Service features will be limited.")
+                # User cancelled - exit gracefully
+                print("Administrator privileges required. Exiting.")
+                import os
+                os._exit(1)
         except Exception as e:
             print(f"Error checking admin privileges: {e}")
+            import os
+            os._exit(1)
     
     def __init__(self):
         # Check and request admin privileges on Windows
