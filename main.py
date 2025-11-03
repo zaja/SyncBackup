@@ -579,11 +579,11 @@ class SyncBackupApp:
             # Update cards
             if 'jobs' in self.dashboard_cards:
                 self.dashboard_cards['jobs']['value'].config(text=str(stats['total_jobs']))
-                self.dashboard_cards['jobs']['subtitle'].config(text=f"Active: {stats['active_jobs']}")
+                self.dashboard_cards['jobs']['subtitle'].config(text=f"{self._('dashboard.active')}: {stats['active_jobs']}")
             
             if 'size' in self.dashboard_cards:
                 self.dashboard_cards['size']['value'].config(text=stats['total_size_str'])
-                self.dashboard_cards['size']['subtitle'].config(text="All backups")
+                self.dashboard_cards['size']['subtitle'].config(text=self._("dashboard.all_backups"))
             
             if 'next' in self.dashboard_cards:
                 self.dashboard_cards['next']['value'].config(text=stats['next_backup_time'])
@@ -1428,12 +1428,18 @@ class SyncBackupApp:
                 return
             
             if start_service():
+                # Wait a moment for service to fully start
+                import time
+                time.sleep(1)
+                
                 messagebox.showinfo("Success", "Service started successfully!")
                 self.update_service_status_indicator()
             else:
                 messagebox.showerror("Error", "Failed to start service.\n\nCheck if service is installed.")
+                self.update_service_status_indicator()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to start service:\n{e}")
+            self.update_service_status_indicator()
     
     def stop_service_action(self):
         """Stop Windows service"""
