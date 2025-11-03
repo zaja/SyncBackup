@@ -5,7 +5,7 @@ pillow==11.2.1
 plyer==2.1.0
 
 # Optional dependencies
-# pywin32==306  # Uncomment for Windows Service support (Windows only)
+pywin32==311  # For Windows Service support (Windows only)
 
 # Standard library modules (included with Python)
 # tkinter - GUI framework (included with Python)
