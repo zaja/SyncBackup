@@ -11,14 +11,19 @@ import time
 import logging
 from pathlib import Path
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# CRITICAL: Add parent directory to path BEFORE any other imports
+# This must be done first so that 'app' module can be found
+_service_dir = os.path.dirname(os.path.abspath(__file__))
+_parent_dir = os.path.dirname(_service_dir)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
 
 try:
     import win32serviceutil
     import win32service
     import win32event
     import servicemanager
+    import win32api
     PYWIN32_AVAILABLE = True
 except ImportError:
     PYWIN32_AVAILABLE = False
@@ -31,6 +36,9 @@ class SyncBackupService:
         _svc_name_ = "SyncBackupService"
         _svc_display_name_ = "SyncBackup - Folder Sync & Backup Service"
         _svc_description_ = "Automated folder synchronization and backup service"
+        _svc_reg_class_ = "PythonService"
+        _exe_name_ = sys.executable
+        _exe_args_ = f'"{os.path.abspath(__file__)}"'
     
     def __init__(self, args=None):
         if PYWIN32_AVAILABLE:
@@ -133,6 +141,9 @@ if PYWIN32_AVAILABLE:
         _svc_name_ = SyncBackupService._svc_name_
         _svc_display_name_ = SyncBackupService._svc_display_name_
         _svc_description_ = SyncBackupService._svc_description_
+        _svc_reg_class_ = SyncBackupService._svc_reg_class_
+        _exe_name_ = SyncBackupService._exe_name_
+        _exe_args_ = SyncBackupService._exe_args_
         
         def __init__(self, args):
             win32serviceutil.ServiceFramework.__init__(self, args)
@@ -150,14 +161,55 @@ def install_service():
         return False
     
     try:
+        # Ensure we're running as administrator
+        import ctypes
+        if not ctypes.windll.shell32.IsUserAnAdmin():
+            print("Error: Administrator privileges required to install service")
+            print("Please run this script as Administrator")
+            return False
+        
         # Get the service script path
         service_script = os.path.abspath(__file__)
         
-        # Install using HandleCommandLine
-        sys.argv = ['', 'install']
-        win32serviceutil.HandleCommandLine(ServiceClass)
+        # Install the service
+        print(f"Installing service '{ServiceClass._svc_display_name_}'...")
+        print(f"Service script: {service_script}")
+        print(f"Python executable: {sys.executable}")
         
-        print(f"Service '{ServiceClass._svc_display_name_}' installed successfully")
+        # Use InstallService directly for better control
+        win32serviceutil.InstallService(
+            ServiceClass._svc_reg_class_,
+            ServiceClass._svc_name_,
+            ServiceClass._svc_display_name_,
+            description=ServiceClass._svc_description_,
+            exeName=sys.executable,
+            exeArgs=f'"{service_script}"'
+        )
+        
+        # Set service to auto-start
+        import win32service
+        hscm = win32service.OpenSCManager(None, None, win32service.SC_MANAGER_ALL_ACCESS)
+        try:
+            hs = win32service.OpenService(hscm, ServiceClass._svc_name_, win32service.SERVICE_ALL_ACCESS)
+            try:
+                win32service.ChangeServiceConfig(
+                    hs,
+                    win32service.SERVICE_NO_CHANGE,
+                    win32service.SERVICE_AUTO_START,  # Auto-start
+                    win32service.SERVICE_NO_CHANGE,
+                    None, None, 0, None, None, None,
+                    ServiceClass._svc_display_name_
+                )
+            finally:
+                win32service.CloseServiceHandle(hs)
+        finally:
+            win32service.CloseServiceHandle(hscm)
+        
+        print(f"✓ Service '{ServiceClass._svc_display_name_}' installed successfully")
+        print(f"  Service name: {ServiceClass._svc_name_}")
+        print(f"  Startup type: Automatic")
+        print(f"\nYou can now start the service with: python {service_script} start")
+        print(f"Or use Windows Services Manager (services.msc)")
         return True
     except Exception as e:
         print(f"Error installing service: {e}")
@@ -172,11 +224,26 @@ def uninstall_service():
         return False
     
     try:
-        # Uninstall using HandleCommandLine
-        sys.argv = ['', 'remove']
-        win32serviceutil.HandleCommandLine(ServiceClass)
+        # Ensure we're running as administrator
+        import ctypes
+        if not ctypes.windll.shell32.IsUserAnAdmin():
+            print("Error: Administrator privileges required to uninstall service")
+            print("Please run this script as Administrator")
+            return False
         
-        print(f"Service '{ServiceClass._svc_display_name_}' uninstalled successfully")
+        # Stop service first if running
+        try:
+            win32serviceutil.StopService(ServiceClass._svc_name_)
+            print("Stopping service...")
+            time.sleep(2)
+        except:
+            pass  # Service might not be running
+        
+        # Uninstall the service
+        print(f"Uninstalling service '{ServiceClass._svc_display_name_}'...")
+        win32serviceutil.RemoveService(ServiceClass._svc_name_)
+        
+        print(f"✓ Service '{ServiceClass._svc_display_name_}' uninstalled successfully")
         return True
     except Exception as e:
         print(f"Error uninstalling service: {e}")
@@ -255,12 +322,28 @@ def get_service_status_code():
         return None
 
 if __name__ == '__main__':
+    # Ensure parent directory is in path (critical for service execution)
+    service_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(service_dir)
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    
     if len(sys.argv) == 1:
         # No arguments - try to start as service
         if PYWIN32_AVAILABLE:
-            servicemanager.Initialize()
-            servicemanager.PrepareToHostSingle(ServiceClass)
-            servicemanager.StartServiceCtrlDispatcher()
+            try:
+                servicemanager.Initialize()
+                servicemanager.PrepareToHostSingle(ServiceClass)
+                servicemanager.StartServiceCtrlDispatcher()
+            except Exception as e:
+                # Log error to file for debugging
+                from datetime import datetime
+                log_path = Path(service_dir) / "service_error.log"
+                with open(log_path, 'a') as f:
+                    f.write(f"\n{datetime.now()}: Service start error: {e}\n")
+                    import traceback
+                    traceback.print_exc(file=f)
+                raise
         else:
             print("pywin32 not available - cannot run as service")
     else:

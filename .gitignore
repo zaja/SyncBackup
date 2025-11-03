@@ -40,6 +40,7 @@ env/
 # Logs
 *.log
 app/service.log
+app/service_error.log
 
 # OS
 .DS_Store

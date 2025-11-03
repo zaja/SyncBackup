@@ -1,4 +1,4 @@
-# SyncBackup v1.2 - Advanced Folder Synchronization and Backup Application
+# SyncBackup v1.4 - Advanced Folder Synchronization and Backup Application
 
 **Author:** Goran Zajec  
 **Website:** https://svejedobro.hr
@@ -7,7 +7,7 @@
 
 ## 📋 Overview
 
-SyncBackup v1.2 is an advanced Python Tkinter application for folder synchronization and backup with automatic scheduling capabilities, file retention policy, SQLite database, system tray functionality, and comprehensive dashboard monitoring.
+SyncBackup v1.4 is an advanced Python Tkinter application for folder synchronization and backup with automatic scheduling capabilities, file retention policy, SQLite database, system tray functionality, comprehensive dashboard monitoring, and Windows Service support.
 
 ## ✨ Key Features
 
@@ -107,16 +107,23 @@ python main.py
 
 ```
 SyncBackup/
-├── main.py              # Main application (console mode)
-├── main.pyw             # Main application (GUI mode, no console)
+├── main.py                      # Main application (console mode)
+├── main.pyw                     # Main application (GUI mode, no console)
+├── service_manager.py           # Windows Service management helper
+├── SERVIS_UPUTE.md             # Service troubleshooting (Croatian)
+├── SERVICE_TROUBLESHOOTING.md  # Service troubleshooting (English)
 ├── app/
-│   ├── database.py      # SQLite database manager
-│   ├── tray_icon.py     # System tray functionality
-│   ├── sync_backup.db   # SQLite database (created automatically)
-│   ├── MANUAL_HR.html   # User manual (Croatian)
-│   ├── MANUAL_EN.html   # User manual (English)
-│   └── requirements.txt # Dependencies
-└── README.md           # This file
+│   ├── database.py              # SQLite database manager
+│   ├── tray_icon.py             # System tray functionality
+│   ├── windows_service.py       # Windows Service implementation
+│   ├── language_manager.py      # Multi-language support
+│   ├── sync_backup.db           # SQLite database (created automatically)
+│   ├── service.log              # Service log (created when service runs)
+│   ├── languages/
+│   │   ├── en.json              # English translations
+│   │   └── hr.json              # Croatian translations
+│   └── requirements.txt         # Dependencies
+└── README.md                   # This file
 ```
 
 ## ⚙️ Additional Features
@@ -165,11 +172,40 @@ Centralized configuration for application preferences:
 Run SyncBackup as a Windows Service for unattended operation:
 - **Background Operation**: Runs without user login
 - **Auto-Start**: Starts automatically with Windows
-- **Service Management**: Install, uninstall, and check status from Settings tab
+- **Service Management**: Install, uninstall, and check status from Settings tab or command line
 - **Requirements**: 
   - Windows operating system
   - Administrator privileges
-  - pywin32 package (optional, install with: `pip install pywin32`)
+  - pywin32 package (install with: `pip install pywin32`)
+
+#### Command Line Service Management
+Use the `service_manager.py` helper script for easy service management:
+
+```powershell
+# Run PowerShell as Administrator, then:
+
+# Install service
+python service_manager.py install
+
+# Start service
+python service_manager.py start
+
+# Check status
+python service_manager.py status
+
+# Stop service
+python service_manager.py stop
+
+# Uninstall service
+python service_manager.py uninstall
+
+# Debug mode (run in console)
+python service_manager.py debug
+```
+
+**Important:** Service must be installed and managed with Administrator privileges.
+
+For detailed troubleshooting, see `SERVIS_UPUTE.md` (Croatian) or `SERVICE_TROUBLESHOOTING.md` (English).
 
 ## 🗃️ Database
 
@@ -199,9 +235,35 @@ The application uses SQLite database (`app/sync_backup.db`) for:
 - Run from command prompt to see errors
 - Check Python version (3.7+)
 
+### Windows Service Issues
+
+#### Service not visible in services.msc
+1. Remove old service: `sc delete SyncBackupService`
+2. Reinstall: `python service_manager.py install`
+3. Check: `python service_manager.py status`
+
+#### ModuleNotFoundError: No module named 'app'
+- This should be fixed in the latest version
+- If still occurs, check `app\service_error.log`
+- Try debug mode: `python service_manager.py debug`
+
+#### Service won't start
+1. Check logs: `type app\service.log`
+2. Check error log: `type app\service_error.log`
+3. Run in debug mode: `python service_manager.py debug`
+4. Verify admin privileges
+
+#### Access Denied errors
+- Run PowerShell as Administrator
+- Right-click → "Run as Administrator"
+
+For detailed service troubleshooting, see:
+- `SERVIS_UPUTE.md` (Croatian)
+- `SERVICE_TROUBLESHOOTING.md` (English)
+
 ## 📝 Changelog
 
-### v1.3 (2025-11-03)
+### v1.4 (2025-11-03)
 - **Settings Tab**: New centralized settings interface
 - **Notification Batching**: Smart notification grouping to prevent spam
   - Three modes: Immediate, Batch (default), and Disabled
@@ -210,7 +272,11 @@ The application uses SQLite database (`app/sync_backup.db`) for:
 - **Windows Service Support**: Run as Windows Service (optional)
   - Background operation without user login
   - Auto-start with Windows
-  - Service management from Settings tab
+  - Service management from Settings tab and command line
+  - **Fixed**: Module import errors (ModuleNotFoundError: No module named 'app')
+  - **Fixed**: Service registration issues (service not visible in services.msc)
+  - **Added**: `service_manager.py` helper script for easy command-line management
+  - **Added**: Comprehensive troubleshooting guides (SERVIS_UPUTE.md, SERVICE_TROUBLESHOOTING.md)
 - **Language Selection**: Choose between Croatian and English (UI labels to be translated)
 - **Enhanced Database**: New tables for settings and notification queue
 - **Improved User Experience**: Prevents notification overload when multiple backups complete

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SyncBackup v1.3 - Napredna aplikacija za sinkronizaciju i backup foldera
+SyncBackup v1.4 - Napredna aplikacija za sinkronizaciju i backup foldera
 
 Autor: Goran Zajec
 Web stranica: https://svejedobro.hr
@@ -2209,7 +2209,7 @@ class SyncBackupApp:
             notification.notify(
                 title=title,
                 message=message,
-                app_name="SyncBackup v1.3",
+                app_name="SyncBackup v1.4",
                 timeout=timeout,
                 app_icon=None  # Možemo dodati ikonu kasnije
             )
