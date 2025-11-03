@@ -171,10 +171,11 @@ class SyncBackupService:
             last_run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             next_run = self.calculate_next_run_service(job_data)
             
-            db_manager.update_job(job_id, {
+            # Use direct SQL update to avoid NOT NULL constraint issues
+            self.update_job_fields(db_manager, job_id, {
                 'last_run': last_run,
                 'next_run': next_run,
-                'running': False
+                'running': 0
             })
             
             duration = time.time() - start_time
@@ -190,9 +191,9 @@ class SyncBackupService:
             
             # Update next_run even on failure
             next_run = self.calculate_next_run_service(job_data)
-            db_manager.update_job(job_id, {
+            self.update_job_fields(db_manager, job_id, {
                 'next_run': next_run,
-                'running': False
+                'running': 0
             })
     
     def execute_simple_job_service(self, job_data, db_manager):
@@ -309,6 +310,27 @@ class SyncBackupService:
         except:
             pass
         return total_size
+    
+    def update_job_fields(self, db_manager, job_id, fields):
+        """Update specific job fields without requiring all fields"""
+        import sqlite3
+        
+        # Build dynamic UPDATE query
+        set_clauses = []
+        values = []
+        
+        for field, value in fields.items():
+            set_clauses.append(f"{field} = ?")
+            values.append(value)
+        
+        values.append(job_id)  # For WHERE clause
+        
+        query = f"UPDATE jobs SET {', '.join(set_clauses)} WHERE id = ?"
+        
+        with sqlite3.connect(db_manager.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, values)
+            conn.commit()
 
 # Make the service class inherit from ServiceFramework if pywin32 is available
 if PYWIN32_AVAILABLE:
