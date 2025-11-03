@@ -302,6 +302,10 @@ class SyncBackupApp:
         # Start notification batch processor
         self.start_notification_processor()
     
+    def _(self, key, default=None, **kwargs):
+        """Helper method for getting translations"""
+        return self.lang_manager.get(key, default, **kwargs)
+    
     def setup_logging(self):
         """Setup logging sistem - only console logging, database logging handled separately"""
         logging.basicConfig(
@@ -324,31 +328,31 @@ class SyncBackupApp:
         control_frame.pack(fill=tk.X, pady=(15, 10), padx=15)
         
         # Control buttons
-        ttk.Button(control_frame, text="➕ New Job", command=self.new_job_dialog).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(control_frame, text=self._("buttons.new_job"), command=self.new_job_dialog).pack(side=tk.LEFT, padx=(0, 5))
         
         # Store job-specific buttons as instance variables for show/hide control
-        self.edit_btn = ttk.Button(control_frame, text="✏️ Edit Selected", command=self.edit_job_dialog)
+        self.edit_btn = ttk.Button(control_frame, text=self._("buttons.edit_selected"), command=self.edit_job_dialog)
         self.edit_btn.pack(side=tk.LEFT, padx=(0, 5))
         
-        self.delete_btn = ttk.Button(control_frame, text="❌ Delete Job", command=self.delete_job)
+        self.delete_btn = ttk.Button(control_frame, text=self._("buttons.delete_job"), command=self.delete_job)
         self.delete_btn.pack(side=tk.LEFT, padx=(0, 5))
         
-        self.open_dest_btn = ttk.Button(control_frame, text="📁 Open Destination", command=self.open_destination_folder)
+        self.open_dest_btn = ttk.Button(control_frame, text=self._("buttons.open_destination"), command=self.open_destination_folder)
         self.open_dest_btn.pack(side=tk.LEFT, padx=(0, 5))
         
         # Right side buttons with colors and icons (reversed order)
         # Run Selected - Brown
-        self.run_btn = tk.Button(control_frame, text="▶ Run Selected", command=self.run_job_manual,
+        self.run_btn = tk.Button(control_frame, text=self._("buttons.run_selected"), command=self.run_job_manual,
                           bg="#8D6E63", fg="white", font=("Arial", 11, "bold"))
         self.run_btn.pack(side=tk.RIGHT, padx=(5, 15))
         
         # Deactivate Job - Red
-        self.deactivate_btn = tk.Button(control_frame, text="⏸ Deactivate Job", command=self.deactivate_job,
+        self.deactivate_btn = tk.Button(control_frame, text=self._("buttons.deactivate_job"), command=self.deactivate_job,
                                  bg="#F44336", fg="white", font=("Arial", 11, "bold"))
         self.deactivate_btn.pack(side=tk.RIGHT, padx=(5, 0))
         
         # Activate Job - Green
-        self.activate_btn = tk.Button(control_frame, text="▶ Activate Job", command=self.activate_job, 
+        self.activate_btn = tk.Button(control_frame, text=self._("buttons.activate_job"), command=self.activate_job, 
                                bg="#4CAF50", fg="white", font=("Arial", 11, "bold"))
         self.activate_btn.pack(side=tk.RIGHT, padx=(15, 0))
         
@@ -401,9 +405,9 @@ class SyncBackupApp:
         self.root.after(100, self.update_button_visibility)
     
     def create_dashboard_tab(self):
-        """Kreiraj Dashboard tab s statistikama"""
+        """Kreiraj Dashboard tab"""
         dashboard_frame = ttk.Frame(self.notebook)
-        self.notebook.add(dashboard_frame, text="📊 Dashboard")
+        self.notebook.add(dashboard_frame, text=self._("tabs.dashboard"))
         
         # Initialize dashboard cards dictionary first
         if not hasattr(self, 'dashboard_cards'):
@@ -414,7 +418,7 @@ class SyncBackupApp:
         main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
         # Title
-        title_label = tk.Label(main_container, text="📊 SyncBackup Dashboard", 
+        title_label = tk.Label(main_container, text=self._("dashboard.title"), 
                               font=("Arial", 16, "bold"), fg="#2196F3")
         title_label.pack(pady=(0, 20))
         
@@ -427,15 +431,15 @@ class SyncBackupApp:
         top_row.pack(fill=tk.X, pady=(0, 15))
         
         # Card 1: Total Jobs
-        jobs_card = self.create_stat_card(top_row, "📋 Total Jobs", "0", "Active: 0", "#4CAF50")
+        jobs_card = self.create_stat_card(top_row, f"📋 {self._('dashboard.total_jobs')}", "0", f"{self._('dashboard.active')}: 0", "#4CAF50")
         jobs_card.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         
         # Card 2: Total Backup Size
-        size_card = self.create_stat_card(top_row, "💾 Total Size", "0 MB", "All backups", "#2196F3")
+        size_card = self.create_stat_card(top_row, f"💾 {self._('dashboard.total_size')}", "0 MB", self._("dashboard.all_backups"), "#2196F3")
         size_card.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         
         # Card 3: Next Backup
-        next_card = self.create_stat_card(top_row, "⏰ Next Backup", "None", "No active jobs", "#9C27B0")
+        next_card = self.create_stat_card(top_row, f"⏰ {self._('dashboard.next_backup')}", self._("dashboard.no_active_jobs"), self._("dashboard.no_active_jobs"), "#9C27B0")
         next_card.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         # Bottom row - Recent Activity
@@ -443,7 +447,7 @@ class SyncBackupApp:
         bottom_row.pack(fill=tk.BOTH, expand=True)
         
         # Recent Activity Card
-        activity_card = ttk.LabelFrame(bottom_row, text="📈 Recent Activity (Last 24h)", padding=15)
+        activity_card = ttk.LabelFrame(bottom_row, text=self._("dashboard.recent_activity"), padding=15)
         activity_card.pack(fill=tk.BOTH, expand=True)
         
         # Activity content
@@ -691,7 +695,7 @@ class SyncBackupApp:
     def create_jobs_tab(self):
         """Kreiraj Jobs tab"""
         jobs_frame = ttk.Frame(self.notebook)
-        self.notebook.add(jobs_frame, text="Jobs")
+        self.notebook.add(jobs_frame, text=self._("tabs.jobs"))
         
         # Treeview for jobs list
         columns = ("Name", "Type", "Source", "Destination", "Schedule", "Status", "Running", "Last Run", "Next Run")
@@ -742,7 +746,7 @@ class SyncBackupApp:
     def create_log_tab(self):
         """Kreiraj Log Viewer tab"""
         log_frame = ttk.Frame(self.notebook)
-        self.notebook.add(log_frame, text="Log Viewer")
+        self.notebook.add(log_frame, text=self._("tabs.log_viewer"))
         
         # Log control frame
         log_control_frame = ttk.Frame(log_frame)
@@ -821,7 +825,7 @@ class SyncBackupApp:
     def create_backup_files_tab(self):
         """Kreiraj Backup Files tab"""
         backup_frame = ttk.Frame(self.notebook)
-        self.notebook.add(backup_frame, text="Backup Files")
+        self.notebook.add(backup_frame, text=self._("tabs.backup_files"))
         
         # Control frame
         control_frame = ttk.Frame(backup_frame)
@@ -1108,7 +1112,7 @@ class SyncBackupApp:
     def create_settings_tab(self):
         """Kreiraj Settings tab"""
         settings_frame = ttk.Frame(self.notebook)
-        self.notebook.add(settings_frame, text="⚙️ Settings")
+        self.notebook.add(settings_frame, text=self._("tabs.settings"))
         
         # Create canvas with scrollbar for scrollable content
         canvas = tk.Canvas(settings_frame, highlightthickness=0)
@@ -1137,15 +1141,15 @@ class SyncBackupApp:
         main_container.pack(fill=tk.BOTH, expand=True, padx=40, pady=40)
         
         # Title
-        title_label = tk.Label(main_container, text="⚙️ Application Settings", 
+        title_label = tk.Label(main_container, text=self._("settings.title"), 
                               font=("Arial", 16, "bold"), fg="#2196F3")
         title_label.pack(pady=(0, 30))
         
         # Language Settings Section
-        lang_frame = ttk.LabelFrame(main_container, text="Language / Jezik", padding=20)
+        lang_frame = ttk.LabelFrame(main_container, text=self._("settings.language_section"), padding=20)
         lang_frame.pack(fill=tk.X, pady=(0, 20))
         
-        ttk.Label(lang_frame, text="Select application language:", font=("Arial", 10)).pack(anchor=tk.W, pady=(0, 10))
+        ttk.Label(lang_frame, text=self._("settings.select_language"), font=("Arial", 10)).pack(anchor=tk.W, pady=(0, 10))
         
         self.language_var = tk.StringVar(value=self.lang_manager.get_current_language())
         
@@ -1159,72 +1163,72 @@ class SyncBackupApp:
             ttk.Radiobutton(lang_options_frame, text=name, 
                            variable=self.language_var, value=code).pack(side=tk.LEFT, padx=padx)
         
-        ttk.Label(lang_frame, text="Note: Language change will take effect after application restart", 
+        ttk.Label(lang_frame, text=self._("settings.language_note"), 
                  font=("Arial", 9), foreground="gray").pack(anchor=tk.W, pady=(10, 0))
         
         # Notification Settings Section
-        notif_frame = ttk.LabelFrame(main_container, text="Notification Settings", padding=20)
+        notif_frame = ttk.LabelFrame(main_container, text=self._("settings.notification_section"), padding=20)
         notif_frame.pack(fill=tk.X, pady=(0, 20))
         
-        ttk.Label(notif_frame, text="Notification mode:", font=("Arial", 10)).pack(anchor=tk.W, pady=(0, 10))
+        ttk.Label(notif_frame, text=self._("settings.notification_mode"), font=("Arial", 10)).pack(anchor=tk.W, pady=(0, 10))
         
         self.notification_mode_var = tk.StringVar(value=self.db_manager.get_setting('notification_mode', 'batch'))
         
         notif_options_frame = ttk.Frame(notif_frame)
         notif_options_frame.pack(anchor=tk.W, fill=tk.X)
         
-        ttk.Radiobutton(notif_options_frame, text="Immediate - Show notification for each backup job", 
+        ttk.Radiobutton(notif_options_frame, text=self._("settings.immediate"), 
                        variable=self.notification_mode_var, value='immediate').pack(anchor=tk.W, pady=2)
-        ttk.Radiobutton(notif_options_frame, text="Batch - Group notifications and show summary", 
+        ttk.Radiobutton(notif_options_frame, text=self._("settings.batch"), 
                        variable=self.notification_mode_var, value='batch').pack(anchor=tk.W, pady=2)
-        ttk.Radiobutton(notif_options_frame, text="Disabled - No notifications", 
+        ttk.Radiobutton(notif_options_frame, text=self._("settings.disabled"), 
                        variable=self.notification_mode_var, value='disabled').pack(anchor=tk.W, pady=2)
         
         # Batch interval setting
         batch_interval_frame = ttk.Frame(notif_frame)
         batch_interval_frame.pack(anchor=tk.W, pady=(10, 0))
         
-        ttk.Label(batch_interval_frame, text="Batch notification interval (seconds):").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Label(batch_interval_frame, text=self._("settings.batch_interval")).pack(side=tk.LEFT, padx=(0, 10))
         
         self.batch_interval_var = tk.StringVar(value=self.db_manager.get_setting('notification_batch_interval', '300'))
         batch_interval_spinbox = ttk.Spinbox(batch_interval_frame, from_=60, to=3600, increment=60, 
                                             textvariable=self.batch_interval_var, width=10)
         batch_interval_spinbox.pack(side=tk.LEFT)
         
-        ttk.Label(notif_frame, text="Batch mode groups multiple notifications and shows a summary instead of individual popups", 
+        ttk.Label(notif_frame, text=self._("settings.batch_note"), 
                  font=("Arial", 9), foreground="gray").pack(anchor=tk.W, pady=(10, 0))
         
         # Service Settings Section (Windows only)
         if sys.platform == 'win32':
-            service_frame = ttk.LabelFrame(main_container, text="Windows Service Settings", padding=20)
+            service_frame = ttk.LabelFrame(main_container, text=self._("settings.service_section"), padding=20)
             service_frame.pack(fill=tk.X, pady=(0, 20))
             
-            ttk.Label(service_frame, text="Run as Windows Service:", font=("Arial", 10)).pack(anchor=tk.W, pady=(0, 10))
+            ttk.Label(service_frame, text=self._("settings.run_as_service"), font=("Arial", 10)).pack(anchor=tk.W, pady=(0, 10))
             
             self.run_as_service_var = tk.BooleanVar(value=self.db_manager.get_setting('run_as_service', '0') == '1')
             
-            ttk.Checkbutton(service_frame, text="Enable Windows Service mode (requires restart)", 
+            ttk.Checkbutton(service_frame, text=self._("settings.enable_service"), 
                            variable=self.run_as_service_var).pack(anchor=tk.W)
             
-            ttk.Label(service_frame, text="Note: Service mode allows the application to run in the background without user login.\nRequires administrator privileges to install/uninstall service.", 
+            ttk.Label(service_frame, text=self._("settings.service_note"), 
                      font=("Arial", 9), foreground="gray").pack(anchor=tk.W, pady=(10, 0))
             
             # Service control buttons
             service_btn_frame = ttk.Frame(service_frame)
             service_btn_frame.pack(anchor=tk.W, pady=(15, 0))
             
-            ttk.Button(service_btn_frame, text="Install Service", 
+            ttk.Button(service_btn_frame, text=self._("buttons.install_service"), 
                       command=self.install_service).pack(side=tk.LEFT, padx=(0, 10))
-            ttk.Button(service_btn_frame, text="Uninstall Service", 
+            ttk.Button(service_btn_frame, text=self._("buttons.uninstall_service"), 
                       command=self.uninstall_service).pack(side=tk.LEFT, padx=(0, 10))
-            ttk.Button(service_btn_frame, text="Service Status", 
+            ttk.Button(service_btn_frame, text=self._("buttons.service_status"), 
                       command=self.check_service_status).pack(side=tk.LEFT)
         
         # Save button
         save_btn_frame = ttk.Frame(main_container)
         save_btn_frame.pack(pady=(20, 0))
         
-        ttk.Button(save_btn_frame, text="💾 Save Settings", 
+        ttk.Button(save_btn_frame, text=self._("buttons.save_settings"), 
                   command=self.save_settings, style="Accent.TButton").pack()
         
         # Configure accent button style
@@ -1245,9 +1249,9 @@ class SyncBackupApp:
             if sys.platform == 'win32' and hasattr(self, 'run_as_service_var'):
                 self.db_manager.set_setting('run_as_service', '1' if self.run_as_service_var.get() else '0')
             
-            messagebox.showinfo("Success", "Settings saved successfully!\n\nSome settings may require application restart to take effect.")
+            messagebox.showinfo(self._("messages.success"), self._("messages.settings_saved"))
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to save settings:\n{e}")
+            messagebox.showerror(self._("messages.error"), f"Failed to save settings:\n{e}")
     
     def install_service(self):
         """Install Windows service"""
@@ -2793,7 +2797,7 @@ class SyncBackupApp:
     
     def on_close(self):
         """Handle window close button"""
-        if messagebox.askyesno("Quit", "Are you sure you want to quit SyncBackup?"):
+        if messagebox.askyesno(self._("messages.confirm"), self._("messages.quit_confirm")):
             self.scheduler_running = False
             self.notification_running = False
             if self.tray_icon:
