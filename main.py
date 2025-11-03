@@ -274,16 +274,13 @@ class SyncBackupApp:
             
             if ret > 32:
                 # Successfully requested elevation, exit immediately
-                import os
                 os._exit(0)  # Force exit without cleanup
             else:
                 # User cancelled - exit gracefully
                 print("Administrator privileges required. Exiting.")
-                import os
                 os._exit(1)
         except Exception as e:
             print(f"Error checking admin privileges: {e}")
-            import os
             os._exit(1)
     
     def __init__(self):
