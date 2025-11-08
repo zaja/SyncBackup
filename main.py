@@ -2743,6 +2743,9 @@ class SyncBackupApp:
             self.logger.warning("Last backup path not found, cannot compare changes")
             return 0
         
+        # Track files in source for deleted file detection
+        source_files = set()
+        
         # Walk through source directory
         for root, dirs, files in os.walk(source):
             root_path = Path(root)
@@ -2759,6 +2762,10 @@ class SyncBackupApp:
                 # Skip excluded files
                 if self.should_exclude_path(src_file, exclude_patterns):
                     continue
+                
+                # Track this file for deleted file detection
+                rel_file_path = str(Path(rel_path) / file if rel_path != '.' else Path(file))
+                source_files.add(rel_file_path)
                 
                 # Compare with last backup
                 last_backup_file = last_backup_path / rel_path / file if rel_path != '.' else last_backup_path / file
@@ -2789,55 +2796,31 @@ class SyncBackupApp:
                     status = "new" if is_new else "modified"
                     self.logger.debug(f"Copied {status} file: {rel_path}/{file}")
         
-        # Check for deleted files (files that existed before but not in source now)
-        # We need to check against the INICIAL backup to catch all deleted files
+        # Handle deleted files if preserve_deleted is enabled
         if preserve_deleted:
-            # Find the most recent INICIAL backup to get the full file list
-            inicial_backup = None
-            if last_backup_path and last_backup_path.exists():
-                # Check if last backup is INICIAL
-                if '_INICIAL_' in last_backup_path.name:
-                    inicial_backup = last_backup_path
-                else:
-                    # Find INICIAL backup in the same directory
-                    parent_dir = last_backup_path.parent
-                    inicial_backups = sorted(parent_dir.glob("*_INCREMENTAL_INICIAL_*"))
-                    if inicial_backups:
-                        # Get the most recent INICIAL before current backup
-                        for ib in reversed(inicial_backups):
-                            if ib.stat().st_mtime <= last_backup_path.stat().st_mtime:
-                                inicial_backup = ib
-                                break
-                        if not inicial_backup:
-                            inicial_backup = inicial_backups[-1]
-            
-            if inicial_backup and inicial_backup.exists():
-                for root, dirs, files in os.walk(inicial_backup):
-                    rel_path = os.path.relpath(root, inicial_backup)
-                    src_dir = source / rel_path if rel_path != '.' else source
+            # Check files in last backup that don't exist in source anymore
+            for root, dirs, files in os.walk(last_backup_path):
+                rel_path = os.path.relpath(root, last_backup_path)
+                
+                for file in files:
+                    # Skip already _DELETED files
+                    if '_DELETED' in file:
+                        continue
                     
-                    for file in files:
-                        # Skip already marked deleted files
-                        if '_DELETED' in file:
-                            continue
+                    rel_file_path = str(Path(rel_path) / file if rel_path != '.' else Path(file))
+                    
+                    # If file doesn't exist in source, it was deleted
+                    if rel_file_path not in source_files:
+                        # Create _DELETED marker file in incremental backup
+                        dest_dir = dest / rel_path if rel_path != '.' else dest
+                        dest_dir.mkdir(parents=True, exist_ok=True)
                         
-                        inicial_file = Path(root) / file
-                        src_file = src_dir / file
+                        # Create empty file with _DELETED suffix
+                        deleted_file = dest_dir / f"{file}_DELETED"
+                        deleted_file.touch()
+                        files_processed += 1
                         
-                        # If file doesn't exist in source, mark it as deleted in new backup
-                        if not src_file.exists():
-                            dest_dir = dest / rel_path if rel_path != '.' else dest
-                            dest_dir.mkdir(parents=True, exist_ok=True)
-                            
-                            # Copy file from INICIAL backup and mark as deleted
-                            dest_file = dest_dir / file
-                            shutil.copy2(inicial_file, dest_file)
-                            
-                            # Mark as deleted
-                            marked_file = self.mark_file_as_deleted(dest_file)
-                            if marked_file:
-                                files_processed += 1
-                                self.logger.debug(f"Marked deleted file: {rel_path}/{file}")
+                        self.logger.debug(f"Marked deleted file: {rel_path}/{file}")
         
         return files_processed
     

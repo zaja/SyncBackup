@@ -321,8 +321,8 @@ class SyncBackupService:
             self.logger.info(f"[Job: {job_data['name']}] Creating incremental backup: {incremental_name}")
             self.logger.info(f"[Job: {job_data['name']}] Comparing against: {last_backup_path}")
             
-            # Copy only changed files
-            files_processed = self._copy_changed_files(source_path, incremental_path, last_backup_path)
+            # Copy only changed files and handle deleted files
+            files_processed = self._copy_changed_files(source_path, incremental_path, last_backup_path, preserve_deleted)
             
             if files_processed > 0:
                 # Track incremental backup in database
@@ -350,20 +350,33 @@ class SyncBackupService:
         
         return files_processed
     
-    def _copy_changed_files(self, source, dest, last_backup):
-        """Copy only files that are new or modified compared to last backup"""
+    def _copy_changed_files(self, source, dest, last_backup, preserve_deleted=False):
+        """Copy only files that are new or modified compared to last backup
+        
+        Args:
+            source: Source directory path
+            dest: Destination directory path
+            last_backup: Last backup directory path to compare against
+            preserve_deleted: If True, create _DELETED files for deleted files
+        """
         import shutil
         import os
         from pathlib import Path
         
         files_processed = 0
         
+        # Track files in source for deleted file detection
+        source_files = set()
+        
+        # Copy new and modified files
         for root, dirs, files in os.walk(source):
             root_path = Path(root)
             rel_path = os.path.relpath(root, source)
             
             for file in files:
                 src_file = root_path / file
+                rel_file_path = str(Path(rel_path) / file if rel_path != '.' else Path(file))
+                source_files.add(rel_file_path)
                 
                 # Compare with last backup
                 last_backup_file = last_backup / rel_path / file if rel_path != '.' else last_backup / file
@@ -393,6 +406,33 @@ class SyncBackupService:
                     
                     status = "new" if is_new else "modified"
                     self.logger.debug(f"Copied {status} file: {rel_path}/{file}")
+        
+        # Handle deleted files if preserve_deleted is enabled
+        if preserve_deleted:
+            # Find files that exist in last backup but not in source
+            for root, dirs, files in os.walk(last_backup):
+                root_path = Path(root)
+                rel_path = os.path.relpath(root, last_backup)
+                
+                for file in files:
+                    # Skip already _DELETED files
+                    if '_DELETED' in file:
+                        continue
+                    
+                    rel_file_path = str(Path(rel_path) / file if rel_path != '.' else Path(file))
+                    
+                    # If file doesn't exist in source, it was deleted
+                    if rel_file_path not in source_files:
+                        # Create _DELETED marker file in incremental backup
+                        dest_dir = dest / rel_path if rel_path != '.' else dest
+                        dest_dir.mkdir(parents=True, exist_ok=True)
+                        
+                        # Create empty file with _DELETED suffix
+                        deleted_file = dest_dir / f"{file}_DELETED"
+                        deleted_file.touch()
+                        files_processed += 1
+                        
+                        self.logger.debug(f"Marked deleted file: {rel_path}/{file}")
         
         return files_processed
     
