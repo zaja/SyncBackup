@@ -2,7 +2,7 @@
   "language_name": "Hrvatski",
   "language_code": "hr",
   
-  "window_title": "SyncBackup v1.4 - Sinkronizacija i Backup Foldera",
+  "window_title": "SyncBackup v1.5 - Sinkronizacija i Backup Foldera",
   
   "tabs": {
     "dashboard": "Nadzorna Ploča",
@@ -78,18 +78,22 @@
     "time": "Vrijeme (HH:MM)",
     "day_of_week": "Dan u Tjednu",
     "day_of_month": "Dan u Mjesecu",
-    "preserve_deleted": "Sačuvaj obrisane datoteke",
-    "create_snapshots": "Kreiraj snimke",
-    "snapshot_interval": "Interval snimaka (sati)",
+    "preserve_deleted": "Sačuvaj obrisane datoteke na odredištu",
+    "preserve_deleted_help": "Obrisane datoteke će biti označene sa _DELETED sufiksom umjesto brisanja",
+    "reset_chain_label": "Kreiraj novi INICIAL backup nakon",
+    "reset_chain_unit": "inkrementalnih backupa (0 = nikad)",
+    "reset_chain_help": "Automatski kreira novi puni backup nakon N inkrementalnih backupa",
     "exclude_patterns": "Isključi uzorke (odvojeno zarezom)",
     "enable_notifications": "Prikaži desktop notifikacije",
     "compress_backup": "Kompresiraj backup kao ZIP",
     "retention_policy": "Politika Zadržavanja",
-    "no_retention": "Bez politike zadržavanja",
-    "keep_count": "Zadrži zadnjih N backupa",
-    "keep_days": "Zadrži backupe N dana",
-    "keep_size": "Zadrži do N MB",
-    "retention_value": "Vrijednost Zadržavanja"
+    "enable_retention": "Omogući politiku zadržavanja datoteka",
+    "retention_help": "Automatski briši stare backup datoteke prema pravilima ispod",
+    "keep_last": "Zadrži zadnjih",
+    "backups": "backupa",
+    "chains": "punih backupa (lanaca)",
+    "retention_help_simple": "Zadrži samo najnovije backup datoteke",
+    "retention_help_incremental": "Zadrži samo najnovije kompletne lance backupa (INICIAL + svi inkrementalni)"
   },
   
   "settings": {
@@ -160,6 +164,8 @@
     "size": "Veličina",
     "all": "Sve",
     "simple_backup": "jednostavan_backup",
+    "incremental_inicial": "inkrementalni_INICIAL",
+    "incremental": "inkrementalni",
     "incremental_snapshot": "inkrementalna_snimka"
   },
   

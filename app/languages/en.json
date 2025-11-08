@@ -2,7 +2,7 @@
   "language_name": "English",
   "language_code": "en",
   
-  "window_title": "SyncBackup v1.4 - Folder Sync & Backup",
+  "window_title": "SyncBackup v1.5 - Folder Sync & Backup",
   
   "tabs": {
     "dashboard": "Dashboard",
@@ -78,18 +78,22 @@
     "time": "Time (HH:MM)",
     "day_of_week": "Day of Week",
     "day_of_month": "Day of Month",
-    "preserve_deleted": "Preserve deleted files",
-    "create_snapshots": "Create snapshots",
-    "snapshot_interval": "Snapshot interval (hours)",
+    "preserve_deleted": "Preserve deleted files on destination",
+    "preserve_deleted_help": "Deleted files will be marked with _DELETED suffix instead of removal",
+    "reset_chain_label": "Create new INICIAL backup after",
+    "reset_chain_unit": "incremental backups (0 = never)",
+    "reset_chain_help": "Automatically creates new full backup after N incremental backups",
     "exclude_patterns": "Exclude patterns (comma-separated)",
     "enable_notifications": "Show desktop notifications",
     "compress_backup": "Compress backup as ZIP",
     "retention_policy": "Retention Policy",
-    "no_retention": "No retention policy",
-    "keep_count": "Keep last N backups",
-    "keep_days": "Keep backups for N days",
-    "keep_size": "Keep up to N MB",
-    "retention_value": "Retention Value"
+    "enable_retention": "Enable file retention policy",
+    "retention_help": "Automatically delete old backup files based on rules below",
+    "keep_last": "Keep last",
+    "backups": "backups",
+    "chains": "full backups (chains)",
+    "retention_help_simple": "Keep only the most recent backup files",
+    "retention_help_incremental": "Keep only the most recent complete backup chains (INICIAL + all incrementals)"
   },
   
   "settings": {
@@ -160,6 +164,8 @@
     "size": "Size",
     "all": "All",
     "simple_backup": "simple_backup",
+    "incremental_inicial": "incremental_INICIAL",
+    "incremental": "incremental",
     "incremental_snapshot": "incremental_snapshot"
   },
   
