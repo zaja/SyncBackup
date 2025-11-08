@@ -53,3 +53,16 @@ desktop.ini
 
 # Test backups (if any)
 test_backups/
+
+# Test scripts
+test_*.py
+test_data/
+
+# Migration scripts (one-time use)
+migrate_*.py
+fix_*.py
+
+# Documentation that's not needed in repo
+*_IMPROVEMENTS.md
+DEPLOYMENT_CHECKLIST.md
+IMPLEMENTATION_SUMMARY.md

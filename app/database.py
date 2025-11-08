@@ -174,21 +174,20 @@ class DatabaseManager:
                             INSERT OR IGNORE INTO jobs (
                                 id, name, job_type, source_path, dest_path, active,
                                 schedule_type, schedule_value, preserve_deleted,
-                                create_snapshots, snapshot_interval, last_run,
+                                reset_chain_after, last_run,
                                 next_run, running
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """, (
-                            job_data.get('id'),
-                            job_data.get('name'),
-                            job_data.get('job_type'),
-                            job_data.get('source_path'),
-                            job_data.get('dest_path'),
+                            job_data['id'],
+                            job_data['name'],
+                            job_data['job_type'],
+                            job_data['source_path'],
+                            job_data['dest_path'],
                             job_data.get('active', True),
                             job_data.get('schedule_type'),
                             job_data.get('schedule_value'),
                             job_data.get('preserve_deleted', False),
-                            job_data.get('create_snapshots', False),
-                            job_data.get('snapshot_interval', 24),
+                            job_data.get('reset_chain_after', 0),
                             job_data.get('last_run'),
                             job_data.get('next_run'),
                             job_data.get('running', False)
@@ -273,9 +272,9 @@ class DatabaseManager:
                 INSERT INTO jobs (
                     name, job_type, source_path, dest_path, active,
                     schedule_type, schedule_value, preserve_deleted,
-                    create_snapshots, snapshot_interval, last_run,
+                    reset_chain_after, last_run,
                     next_run, running
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 job_data.get('name'),
                 job_data.get('job_type'),
@@ -285,8 +284,7 @@ class DatabaseManager:
                 job_data.get('schedule_type'),
                 job_data.get('schedule_value'),
                 job_data.get('preserve_deleted', False),
-                job_data.get('create_snapshots', False),
-                job_data.get('snapshot_interval', 24),
+                job_data.get('reset_chain_after', 0),
                 job_data.get('last_run'),
                 job_data.get('next_run'),
                 job_data.get('running', False)
@@ -305,7 +303,7 @@ class DatabaseManager:
                 UPDATE jobs SET
                     name = ?, job_type = ?, source_path = ?, dest_path = ?,
                     active = ?, schedule_type = ?, schedule_value = ?,
-                    preserve_deleted = ?, create_snapshots = ?, snapshot_interval = ?,
+                    preserve_deleted = ?, reset_chain_after = ?,
                     last_run = ?, next_run = ?, running = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
@@ -318,8 +316,7 @@ class DatabaseManager:
                 job_data.get('schedule_type'),
                 job_data.get('schedule_value'),
                 job_data.get('preserve_deleted', False),
-                job_data.get('create_snapshots', False),
-                job_data.get('snapshot_interval', 24),
+                job_data.get('reset_chain_after', 0),
                 job_data.get('last_run'),
                 job_data.get('next_run'),
                 job_data.get('running', False),
@@ -357,6 +354,13 @@ class DatabaseManager:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
+            # First, delete any existing record for this job_id and hash_type
+            cursor.execute("""
+                DELETE FROM backup_hashes 
+                WHERE job_id = ? AND hash_type = ?
+            """, (job_id, hash_type))
+            
+            # Then insert the new record
             cursor.execute("""
                 INSERT INTO backup_hashes (job_id, hash_type, mtime, timestamp)
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP)

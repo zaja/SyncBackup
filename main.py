@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-SyncBackup v1.4 - Napredna aplikacija za sinkronizaciju i backup foldera
+SyncBackup v1.5 - Napredna aplikacija za sinkronizaciju i backup foldera
 
 Autor: Goran Zajec
 Web stranica: https://svejedobro.hr
 """
+
+__version__ = "1.5"
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -107,10 +109,12 @@ class Job:
     
     def __init__(self, name="", job_type="Simple", source_path="", dest_path="", 
                  active=True, schedule_type="Daily", schedule_value="14:00",
-                 preserve_deleted=False, create_snapshots=False, snapshot_interval=24,
+                 preserve_deleted=False, reset_chain_after=0,
                  exclude_patterns="", enable_notifications=True, compress_backup=False, 
                  last_run=None, next_run=None, running=False, id=None, 
-                 created_at=None, updated_at=None):
+                 created_at=None, updated_at=None,
+                 # Legacy parameters for backward compatibility
+                 create_snapshots=False, snapshot_interval=24):
         self.name = name
         self.job_type = job_type  # "Simple" ili "Incremental"
         self.source_path = source_path
@@ -119,8 +123,7 @@ class Job:
         self.schedule_type = schedule_type
         self.schedule_value = schedule_value
         self.preserve_deleted = preserve_deleted
-        self.create_snapshots = create_snapshots
-        self.snapshot_interval = snapshot_interval
+        self.reset_chain_after = reset_chain_after  # After how many incremental backups to create new INICIAL (0 = never)
         self.exclude_patterns = exclude_patterns  # Comma-separated patterns like ".git,node_modules,__pycache__"
         self.enable_notifications = enable_notifications  # Show desktop notifications
         self.compress_backup = compress_backup  # Compress backup as ZIP file
@@ -130,6 +133,10 @@ class Job:
         self.id = id if id is not None else int(time.time() * 1000)  # Unique ID
         self.created_at = created_at
         self.updated_at = updated_at
+        
+        # Legacy compatibility - convert old snapshot settings to new reset_chain_after
+        if create_snapshots and reset_chain_after == 0:
+            self.reset_chain_after = snapshot_interval if snapshot_interval > 0 else 30
 
 class JobManager:
     """Upravljanje job-ovima i data persistence"""
@@ -168,8 +175,7 @@ class JobManager:
                     'schedule_type': job.schedule_type,
                     'schedule_value': job.schedule_value,
                     'preserve_deleted': job.preserve_deleted,
-                    'create_snapshots': job.create_snapshots,
-                    'snapshot_interval': job.snapshot_interval,
+                    'reset_chain_after': job.reset_chain_after,
                     'last_run': job.last_run,
                     'next_run': job.next_run,
                     'running': job.running
@@ -193,8 +199,7 @@ class JobManager:
             'schedule_type': job.schedule_type,
             'schedule_value': job.schedule_value,
             'preserve_deleted': job.preserve_deleted,
-            'create_snapshots': job.create_snapshots,
-            'snapshot_interval': job.snapshot_interval,
+            'reset_chain_after': job.reset_chain_after,
             'last_run': job.last_run,
             'next_run': job.next_run,
             'running': job.running
@@ -213,8 +218,7 @@ class JobManager:
             'schedule_type': updated_job.schedule_type,
             'schedule_value': updated_job.schedule_value,
             'preserve_deleted': updated_job.preserve_deleted,
-            'create_snapshots': updated_job.create_snapshots,
-            'snapshot_interval': updated_job.snapshot_interval,
+            'reset_chain_after': updated_job.reset_chain_after,
             'last_run': updated_job.last_run,
             'next_run': updated_job.next_run,
             'running': updated_job.running
@@ -430,14 +434,14 @@ class SyncBackupApp:
         # Jobs tab
         self.create_jobs_tab()
         
-        # Log viewer tab
-        self.create_log_tab()
-        
         # Backup files tab
         self.create_backup_files_tab()
         
         # Settings tab
         self.create_settings_tab()
+        
+        # Log viewer tab (last)
+        self.create_log_tab()
         
         # Load jobs into GUI
         self.refresh_jobs_list()
@@ -495,17 +499,17 @@ class SyncBackupApp:
         next_card = self.create_stat_card(top_row, f"⏰ {self._('dashboard.next_backup')}", self._("dashboard.no_active_jobs"), self._("dashboard.no_active_jobs"), "#9C27B0")
         next_card.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        # Bottom row - Recent Activity
+        # Bottom row - Recent Activity (larger)
         bottom_row = ttk.Frame(cards_frame)
-        bottom_row.pack(fill=tk.BOTH, expand=True)
+        bottom_row.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
         
         # Recent Activity Card
         activity_card = ttk.LabelFrame(bottom_row, text=self._("dashboard.recent_activity"), padding=15)
         activity_card.pack(fill=tk.BOTH, expand=True)
         
-        # Activity content
-        self.activity_text = tk.Text(activity_card, height=8, wrap=tk.WORD, 
-                                   font=("Consolas", 10), bg="#f8f9fa", 
+        # Activity content (increased height for more visibility)
+        self.activity_text = tk.Text(activity_card, height=15, wrap=tk.WORD, 
+                                   font=("Consolas", 9), bg="#f8f9fa", 
                                    relief=tk.FLAT, bd=1)
         activity_scrollbar = ttk.Scrollbar(activity_card, orient=tk.VERTICAL, command=self.activity_text.yview)
         self.activity_text.configure(yscrollcommand=activity_scrollbar.set)
@@ -708,33 +712,64 @@ class SyncBackupApp:
         return stats
     
     def update_recent_activity(self, recent_logs):
-        """Ažuriraj recent activity prikaz"""
+        """Ažuriraj recent activity prikaz sa detaljnim informacijama"""
         self.activity_text.delete(1.0, tk.END)
         
         if not recent_logs:
-            self.activity_text.insert(tk.END, "No recent activity in the last 24 hours.")
+            self.activity_text.insert(tk.END, "No recent activity in the last 24 hours.\n")
+            self.activity_text.insert(tk.END, "Jobs will appear here after they run.")
             return
         
-        for log in recent_logs[:20]:  # Show last 20 entries
+        for log in recent_logs[:30]:  # Show last 30 entries (more space now)
             exec_time = log.get('execution_time', '')
             job_name = log.get('job_name', 'Unknown')
             status = log.get('status', 'unknown')
             duration = log.get('duration_seconds', 0)
+            files_processed = log.get('files_processed', 0)
+            message = log.get('message', '')
             
             # Format execution_time
             try:
                 dt = datetime.strptime(exec_time, '%Y-%m-%d %H:%M:%S')
                 time_str = dt.strftime("%H:%M:%S")
+                date_str = dt.strftime("%d/%m")
             except:
                 time_str = exec_time[-8:] if len(exec_time) >= 8 else exec_time
+                date_str = exec_time[:10] if len(exec_time) >= 10 else ""
             
-            # Status icon (include 'completed' as success)
-            status_icon = "✅" if status in ["success", "completed"] else "❌" if status == "error" else "⏸️" if status == "skipped" else "🔄"
+            # Status icon and text
+            if status in ["success", "completed"]:
+                status_icon = "✅"
+                status_text = "SUCCESS"
+            elif status == "error":
+                status_icon = "❌"
+                status_text = "ERROR"
+            elif status == "skipped":
+                status_icon = "⏸️"
+                status_text = "SKIPPED"
+            elif status == "started":
+                status_icon = "🔄"
+                status_text = "STARTED"
+            else:
+                status_icon = "ℹ️"
+                status_text = status.upper()
             
-            # Duration
-            duration_str = f"({duration:.1f}s)" if duration and duration > 0 else ""
+            # Build activity line with more details
+            activity_line = f"{date_str} {time_str} │ {status_icon} {status_text:8} │ {job_name:20}"
             
-            activity_line = f"{time_str} {status_icon} {job_name} {duration_str}\n"
+            # Add duration if available
+            if duration and duration > 0:
+                activity_line += f" │ {duration:5.1f}s"
+            
+            # Add files processed if available
+            if files_processed > 0:
+                activity_line += f" │ {files_processed} files"
+            
+            # Add message if available and not too long
+            if message and len(message) < 50:
+                activity_line += f" │ {message}"
+            
+            activity_line += "\n"
             self.activity_text.insert(tk.END, activity_line)
         
         # Scroll to top
@@ -1746,34 +1781,23 @@ class SyncBackupApp:
                        variable=preserve_deleted_var)
         preserve_deleted_check.pack(anchor=tk.W, padx=5, pady=2)
         
-        create_snapshots_var = tk.BooleanVar(value=job.create_snapshots if job else False)
-        create_snapshots_check = ttk.Checkbutton(incremental_frame, text="Create periodic snapshots", 
-                       variable=create_snapshots_var)
-        create_snapshots_check.pack(anchor=tk.W, padx=5, pady=2)
-        
-        snapshot_frame = ttk.Frame(incremental_frame)
-        snapshot_frame.pack(anchor=tk.W, padx=5, pady=2)
-        ttk.Label(snapshot_frame, text="Every").pack(side=tk.LEFT)
-        snapshot_interval_var = tk.StringVar(value=str(job.snapshot_interval) if job else "24")
-        snapshot_interval_entry = ttk.Entry(snapshot_frame, textvariable=snapshot_interval_var, width=5)
-        snapshot_interval_entry.pack(side=tk.LEFT, padx=(5, 5))
-        snapshot_unit_var = tk.StringVar(value="hours")
-        snapshot_unit_combo = ttk.Combobox(snapshot_frame, textvariable=snapshot_unit_var, values=["hours", "days", "weeks"], 
-                    state="readonly", width=8)
-        snapshot_unit_combo.pack(side=tk.LEFT)
+        # Reset chain after N incremental backups
+        reset_chain_frame = ttk.Frame(incremental_frame)
+        reset_chain_frame.pack(anchor=tk.W, padx=5, pady=5)
+        ttk.Label(reset_chain_frame, text="Create new INICIAL backup after").pack(side=tk.LEFT)
+        reset_chain_var = tk.StringVar(value=str(job.reset_chain_after) if job and job.reset_chain_after > 0 else "0")
+        reset_chain_entry = ttk.Entry(reset_chain_frame, textvariable=reset_chain_var, width=5)
+        reset_chain_entry.pack(side=tk.LEFT, padx=(5, 5))
+        ttk.Label(reset_chain_frame, text="incremental backups (0 = never)").pack(side=tk.LEFT)
         
         # Function to toggle incremental options
         def toggle_incremental_options():
             if type_var.get() == "Incremental":
                 preserve_deleted_check.configure(state="normal")
-                create_snapshots_check.configure(state="normal")
-                snapshot_interval_entry.configure(state="normal")
-                snapshot_unit_combo.configure(state="readonly")
+                reset_chain_entry.configure(state="normal")
             else:
                 preserve_deleted_check.configure(state="disabled")
-                create_snapshots_check.configure(state="disabled")
-                snapshot_interval_entry.configure(state="disabled")
-                snapshot_unit_combo.configure(state="disabled")
+                reset_chain_entry.configure(state="disabled")
         
         # Bind the radio buttons to toggle function
         type_var.trace('w', lambda *args: toggle_incremental_options())
@@ -1793,66 +1817,49 @@ class SyncBackupApp:
         ttk.Label(retention_frame, text="Automatically delete old backup files based on rules below", 
                  font=("Arial", 9), foreground="gray").pack(anchor=tk.W, padx=5, pady=(0, 5))
         
-        # Retention policy type
+        # Retention policy type (always keep_count)
         retention_type_var = tk.StringVar(value="keep_count")
-        retention_type_frame = ttk.Frame(retention_frame)
-        retention_type_frame.pack(anchor=tk.W, padx=5, pady=2)
-        ttk.Label(retention_type_frame, text="Keep:").pack(side=tk.LEFT)
-        ttk.Radiobutton(retention_type_frame, text="Last N backups", variable=retention_type_var, value="keep_count").pack(side=tk.LEFT, padx=(5, 10))
-        ttk.Radiobutton(retention_type_frame, text="Backups for N days", variable=retention_type_var, value="keep_days").pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Radiobutton(retention_type_frame, text="Until N MB", variable=retention_type_var, value="keep_size").pack(side=tk.LEFT)
-        
-        # Helper text for retention types
-        ttk.Label(retention_frame, text="Last N backups: Keep only the most recent backup files", 
-                 font=("Arial", 9), foreground="gray").pack(anchor=tk.W, padx=5, pady=(0, 2))
-        ttk.Label(retention_frame, text="Backups for N days: Keep backups created within the last N days", 
-                 font=("Arial", 9), foreground="gray").pack(anchor=tk.W, padx=5, pady=(0, 2))
-        ttk.Label(retention_frame, text="Until N MB: Keep backups until total size exceeds N MB", 
-                 font=("Arial", 9), foreground="gray").pack(anchor=tk.W, padx=5, pady=(0, 5))
         
         # Retention policy value
         retention_value_frame = ttk.Frame(retention_frame)
-        retention_value_frame.pack(anchor=tk.W, padx=5, pady=2)
-        ttk.Label(retention_value_frame, text="Value:").pack(side=tk.LEFT)
-        retention_value_var = tk.StringVar(value="10")
+        retention_value_frame.pack(anchor=tk.W, padx=5, pady=5)
+        retention_keep_label = ttk.Label(retention_value_frame, text="Keep last")
+        retention_keep_label.pack(side=tk.LEFT)
+        retention_value_var = tk.StringVar(value="5")
         retention_value_entry = ttk.Entry(retention_value_frame, textvariable=retention_value_var, width=10)
         retention_value_entry.pack(side=tk.LEFT, padx=(5, 5))
         retention_unit_label = ttk.Label(retention_value_frame, text="backups")
         retention_unit_label.pack(side=tk.LEFT)
         
-        # Helper text for value
-        ttk.Label(retention_frame, text="Enter the number of backups, days, or MB to keep", 
-                 font=("Arial", 9), foreground="gray").pack(anchor=tk.W, padx=5, pady=(0, 5))
+        # Helper text (will be updated based on job type)
+        retention_help = ttk.Label(retention_frame, text="Keep only the most recent backup files", 
+                 font=("Arial", 9), foreground="gray")
+        retention_help.pack(anchor=tk.W, padx=5, pady=(0, 5))
         
-        # Function to update retention unit label
-        def update_retention_unit(*args):
-            policy_type = retention_type_var.get()
-            if policy_type == "keep_count":
+        # Function to update retention texts based on job type
+        def update_retention_texts(*args):
+            job_type = type_var.get()
+            
+            if job_type == "Incremental":
+                # For incremental jobs, use "chains" terminology
+                retention_unit_label.config(text="full backups (chains)")
+                retention_help.config(text="Keep only the most recent complete backup chains (INICIAL + all incrementals)")
+            else:
+                # For simple jobs, use regular terminology
                 retention_unit_label.config(text="backups")
-            elif policy_type == "keep_days":
-                retention_unit_label.config(text="days")
-            elif policy_type == "keep_size":
-                retention_unit_label.config(text="MB")
+                retention_help.config(text="Keep only the most recent backup files")
         
         # Function to toggle retention policy options
         def toggle_retention_options(*args):
             enabled = enable_retention_var.get()
             if enabled:
-                # Enable radio buttons
-                for widget in retention_type_frame.winfo_children():
-                    if isinstance(widget, ttk.Radiobutton):
-                        widget.configure(state="normal")
                 retention_value_entry.configure(state="normal")
             else:
-                # Disable radio buttons
-                for widget in retention_type_frame.winfo_children():
-                    if isinstance(widget, ttk.Radiobutton):
-                        widget.configure(state="disabled")
                 retention_value_entry.configure(state="disabled")
         
-        retention_type_var.trace('w', update_retention_unit)
+        type_var.trace('w', update_retention_texts)
         enable_retention_var.trace('w', toggle_retention_options)
-        update_retention_unit()  # Initial call
+        update_retention_texts()  # Initial call
         toggle_retention_options()  # Initial call
         
         # Load existing retention policy if editing
@@ -1897,8 +1904,7 @@ class SyncBackupApp:
                 job.schedule_type = schedule_type_var.get()
                 job.schedule_value = schedule_value_var.get()
                 job.preserve_deleted = preserve_deleted_var.get()
-                job.create_snapshots = create_snapshots_var.get()
-                job.snapshot_interval = int(snapshot_interval_var.get())
+                job.reset_chain_after = int(reset_chain_var.get()) if reset_chain_var.get().isdigit() else 0
                 job.exclude_patterns = exclude_var.get().strip()
                 job.enable_notifications = notifications_var.get()
                 job.compress_backup = compress_var.get()
@@ -1947,8 +1953,7 @@ class SyncBackupApp:
                     schedule_type=schedule_type_var.get(),
                     schedule_value=schedule_value_var.get(),
                     preserve_deleted=preserve_deleted_var.get(),
-                    create_snapshots=create_snapshots_var.get(),
-                    snapshot_interval=int(snapshot_interval_var.get()),
+                    reset_chain_after=int(reset_chain_var.get()) if reset_chain_var.get().isdigit() else 0,
                     exclude_patterns=exclude_var.get().strip(),
                     enable_notifications=notifications_var.get(),
                     compress_backup=compress_var.get()
@@ -2414,31 +2419,76 @@ class SyncBackupApp:
         """Izvrši Incremental job"""
         source_path = Path(job.source_path)
         dest_base = Path(job.dest_path)
-        sync_path = dest_base / source_path.name
+        folder_name = source_path.name
         files_processed = 0
         
-        # Create sync directory if it doesn't exist
-        sync_path.mkdir(parents=True, exist_ok=True)
+        # Check if we need to reset the chain (create new INICIAL)
+        should_reset_chain = False
+        if self.has_incremental_backup(job) and job.reset_chain_after > 0:
+            incremental_count = self.count_incremental_backups_since_inicial(job)
+            if incremental_count >= job.reset_chain_after:
+                should_reset_chain = True
+                self.logger.info(f"[Job: {job.name}] Resetting backup chain after {incremental_count} incremental backups")
         
-        # First run - create initial backup
-        if not self.has_incremental_backup(job):
-            # Remove existing sync_path if it exists
-            if sync_path.exists():
-                shutil.rmtree(sync_path)
-            self.copy_with_exclusions(source_path, sync_path, job.exclude_patterns)
-            files_processed = len(list(sync_path.rglob('*')))
-            self.logger.info(f"[Job: {job.name}] Created initial incremental backup")
-            self.mark_incremental_backup(job)
+        # First run OR reset chain - create initial backup with _INICIAL suffix
+        if not self.has_incremental_backup(job) or should_reset_chain:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            inicial_name = f"{folder_name}_INCREMENTAL_INICIAL_{timestamp}"
+            inicial_path = dest_base / inicial_name
+            
+            # Create initial backup with all files
+            self.copy_with_exclusions(source_path, inicial_path, job.exclude_patterns)
+            files_processed = len(list(inicial_path.rglob('*')))
+            
+            # Track initial backup in database
+            self.db_manager.add_backup_file(
+                job.id,
+                str(inicial_path),
+                'incremental_inicial',
+                datetime.now().isoformat(),
+                self.get_folder_size(inicial_path)
+            )
+            
+            if should_reset_chain:
+                self.logger.info(f"[Job: {job.name}] Created new INICIAL backup (chain reset): {inicial_name}")
+            else:
+                self.logger.info(f"[Job: {job.name}] Created initial incremental backup: {inicial_name}")
+            self.mark_incremental_backup(job, str(inicial_path))
         else:
-            # Incremental sync
-            files_processed = self.sync_incremental(source_path, sync_path, job.preserve_deleted, job.exclude_patterns)
-            self.logger.info(f"[Job: {job.name}] Incremental sync completed")
-            # Update incremental backup hash after sync
-            self.mark_incremental_backup(job)
-        
-        # Create snapshot if needed
-        if job.create_snapshots and self.should_create_snapshot(job):
-            self.create_incremental_snapshot(job, sync_path)
+            # Subsequent incremental backups - only changed files
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            incremental_name = f"{folder_name}_INCREMENTAL_{timestamp}"
+            incremental_path = dest_base / incremental_name
+            
+            # Get the last backup path to compare against
+            last_backup_path = self.get_last_incremental_backup_path(job)
+            
+            # Copy only changed files
+            files_processed = self.sync_incremental_changes_only(
+                source_path, 
+                incremental_path, 
+                last_backup_path,
+                job.exclude_patterns,
+                job.preserve_deleted
+            )
+            
+            if files_processed > 0:
+                # Track incremental backup in database
+                self.db_manager.add_backup_file(
+                    job.id,
+                    str(incremental_path),
+                    'incremental',
+                    datetime.now().isoformat(),
+                    self.get_folder_size(incremental_path)
+                )
+                
+                self.logger.info(f"[Job: {job.name}] Created incremental backup with {files_processed} changed files: {incremental_name}")
+                self.mark_incremental_backup(job, str(incremental_path))
+            else:
+                # No changes, remove empty directory
+                if incremental_path.exists():
+                    shutil.rmtree(incremental_path)
+                self.logger.info(f"[Job: {job.name}] No changes detected, skipping incremental backup")
         
         # Apply retention policies
         self.apply_retention_policies(job)
@@ -2487,13 +2537,70 @@ class SyncBackupApp:
         hash_record = self.db_manager.get_backup_hash(job.id, 'incremental')
         return hash_record is not None
     
-    def mark_incremental_backup(self, job):
+    def get_last_incremental_backup_path(self, job):
+        """Dohvati putanju zadnjeg incremental backupa"""
+        hash_record = self.db_manager.get_backup_hash(job.id, 'incremental')
+        if hash_record and hash_record.get('mtime'):
+            try:
+                import json
+                backup_info = json.loads(hash_record['mtime'])
+                return Path(backup_info['path'])
+            except:
+                pass
+        return None
+    
+    def count_incremental_backups_since_inicial(self, job):
+        """Broji koliko incremental backupa je kreirano od zadnjeg INICIAL backupa"""
+        try:
+            import sqlite3
+            with sqlite3.connect(self.db_manager.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Find the most recent INICIAL backup
+                cursor.execute("""
+                    SELECT created_at FROM backup_files
+                    WHERE job_id = ? AND file_type = 'incremental_inicial'
+                    ORDER BY created_at DESC LIMIT 1
+                """, (job.id,))
+                
+                inicial_result = cursor.fetchone()
+                if not inicial_result:
+                    return 0  # No INICIAL backup yet
+                
+                inicial_time = inicial_result[0]
+                
+                # Count incremental backups after that INICIAL
+                cursor.execute("""
+                    SELECT COUNT(*) FROM backup_files
+                    WHERE job_id = ? 
+                    AND file_type = 'incremental'
+                    AND created_at > ?
+                """, (job.id, inicial_time))
+                
+                count_result = cursor.fetchone()
+                return count_result[0] if count_result else 0
+        except Exception as e:
+            self.logger.error(f"Error counting incremental backups: {e}")
+            return 0
+    
+    def mark_incremental_backup(self, job, backup_path):
         """Označi da je incremental backup kreiran"""
-        # Use current timestamp as mtime for incremental jobs
-        self.db_manager.update_backup_hash(job.id, 'incremental', time.time())
+        # Store backup path and timestamp
+        backup_info = {
+            'path': backup_path,
+            'timestamp': time.time()
+        }
+        import json
+        self.db_manager.update_backup_hash(job.id, 'incremental', json.dumps(backup_info))
     
     def sync_incremental(self, source, dest, preserve_deleted, exclude_patterns=""):
-        """Sinkroniziraj incremental"""
+        """
+        Sinkroniziraj incremental (STARA LOGIKA)
+        
+        NAPOMENA: Ova funkcija koristi staru logiku gdje se datoteke kopiraju u isti folder.
+        Nova logika (sync_incremental_changes_only) kreira nove foldere sa samo izmijenjenim datotekama.
+        Zadržano za kompatibilnost.
+        """
         files_processed = 0
         
         # Copy new and modified files
@@ -2540,6 +2647,141 @@ class SyncBackupApp:
         
         return files_processed
     
+    def mark_file_as_deleted(self, file_path):
+        """Označi datoteku kao obrisanu dodavanjem _DELETED sufiksa"""
+        if not file_path.exists():
+            return None
+        
+        # Get file name parts
+        stem = file_path.stem
+        suffix = file_path.suffix
+        parent = file_path.parent
+        
+        # Create new name with _DELETED suffix
+        new_name = f"{stem}_DELETED{suffix}"
+        new_path = parent / new_name
+        
+        # If file with _DELETED already exists, add timestamp
+        if new_path.exists():
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            new_name = f"{stem}_DELETED_{timestamp}{suffix}"
+            new_path = parent / new_name
+        
+        # Rename the file
+        try:
+            file_path.rename(new_path)
+            self.logger.info(f"Marked as deleted: {file_path.name} → {new_name}")
+            return new_path
+        except Exception as e:
+            self.logger.error(f"Failed to mark file as deleted: {e}")
+            return None
+    
+    def sync_incremental_changes_only(self, source, dest, last_backup_path, exclude_patterns="", preserve_deleted=False):
+        """Kopiraj samo izmijenjene datoteke u novi incremental backup"""
+        files_processed = 0
+        
+        if not last_backup_path or not last_backup_path.exists():
+            self.logger.warning("Last backup path not found, cannot compare changes")
+            return 0
+        
+        # Walk through source directory
+        for root, dirs, files in os.walk(source):
+            root_path = Path(root)
+            
+            # Filter directories based on exclude patterns
+            dirs[:] = [d for d in dirs if not self.should_exclude_path(root_path / d, exclude_patterns)]
+            
+            rel_path = os.path.relpath(root, source)
+            
+            # Copy files that are new or modified
+            for file in files:
+                src_file = Path(root) / file
+                
+                # Skip excluded files
+                if self.should_exclude_path(src_file, exclude_patterns):
+                    continue
+                
+                # Compare with last backup
+                last_backup_file = last_backup_path / rel_path / file if rel_path != '.' else last_backup_path / file
+                
+                # Check if file is new or modified
+                is_new = not last_backup_file.exists()
+                is_modified = False
+                
+                if not is_new:
+                    try:
+                        # Compare modification time and size
+                        src_stat = src_file.stat()
+                        last_stat = last_backup_file.stat()
+                        is_modified = (src_stat.st_mtime > last_stat.st_mtime or 
+                                     src_stat.st_size != last_stat.st_size)
+                    except:
+                        is_modified = True
+                
+                # Copy if new or modified
+                if is_new or is_modified:
+                    dest_dir = dest / rel_path if rel_path != '.' else dest
+                    dest_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    dst_file = dest_dir / file
+                    shutil.copy2(src_file, dst_file)
+                    files_processed += 1
+                    
+                    status = "new" if is_new else "modified"
+                    self.logger.debug(f"Copied {status} file: {rel_path}/{file}")
+        
+        # Check for deleted files (files that existed before but not in source now)
+        # We need to check against the INICIAL backup to catch all deleted files
+        if preserve_deleted:
+            # Find the most recent INICIAL backup to get the full file list
+            inicial_backup = None
+            if last_backup_path and last_backup_path.exists():
+                # Check if last backup is INICIAL
+                if '_INICIAL_' in last_backup_path.name:
+                    inicial_backup = last_backup_path
+                else:
+                    # Find INICIAL backup in the same directory
+                    parent_dir = last_backup_path.parent
+                    inicial_backups = sorted(parent_dir.glob("*_INCREMENTAL_INICIAL_*"))
+                    if inicial_backups:
+                        # Get the most recent INICIAL before current backup
+                        for ib in reversed(inicial_backups):
+                            if ib.stat().st_mtime <= last_backup_path.stat().st_mtime:
+                                inicial_backup = ib
+                                break
+                        if not inicial_backup:
+                            inicial_backup = inicial_backups[-1]
+            
+            if inicial_backup and inicial_backup.exists():
+                for root, dirs, files in os.walk(inicial_backup):
+                    rel_path = os.path.relpath(root, inicial_backup)
+                    src_dir = source / rel_path if rel_path != '.' else source
+                    
+                    for file in files:
+                        # Skip already marked deleted files
+                        if '_DELETED' in file:
+                            continue
+                        
+                        inicial_file = Path(root) / file
+                        src_file = src_dir / file
+                        
+                        # If file doesn't exist in source, mark it as deleted in new backup
+                        if not src_file.exists():
+                            dest_dir = dest / rel_path if rel_path != '.' else dest
+                            dest_dir.mkdir(parents=True, exist_ok=True)
+                            
+                            # Copy file from INICIAL backup and mark as deleted
+                            dest_file = dest_dir / file
+                            shutil.copy2(inicial_file, dest_file)
+                            
+                            # Mark as deleted
+                            marked_file = self.mark_file_as_deleted(dest_file)
+                            if marked_file:
+                                files_processed += 1
+                                self.logger.debug(f"Marked deleted file: {rel_path}/{file}")
+        
+        return files_processed
+    
     def should_create_snapshot(self, job):
         """Provjeri treba li kreirati snapshot"""
         hash_file = Path("backup_hashes.json")
@@ -2563,7 +2805,13 @@ class SyncBackupApp:
         return True
     
     def create_incremental_snapshot(self, job, sync_path):
-        """Kreiraj incremental snapshot"""
+        """
+        Kreiraj incremental snapshot
+        
+        DEPRECATED: Ova funkcija se više ne koristi u novoj incremental backup logici.
+        Svaki incremental backup sada automatski kreira novi folder sa samo izmijenjenim datotekama.
+        Zadržano za kompatibilnost sa starim kodom.
+        """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         folder_name = sync_path.name
         snapshot_name = f"{folder_name}_INCREMENTAL_{timestamp}"
@@ -2594,6 +2842,36 @@ class SyncBackupApp:
             pass
         return total_size
     
+    def group_incremental_backups_into_chains(self, backup_files):
+        """
+        Grupira incremental backupe u lance (chains).
+        Svaki lanac = 1 INICIAL + svi INCREMENTAL backupi do sljedećeg INICIAL-a
+        
+        Returns: Lista lanaca, gdje je svaki lanac lista backup_files
+        """
+        chains = []
+        current_chain = []
+        
+        # Sort by created_at
+        sorted_backups = sorted(backup_files, key=lambda x: x['created_at'])
+        
+        for backup in sorted_backups:
+            if backup['file_type'] == 'incremental_inicial':
+                # Start new chain
+                if current_chain:
+                    chains.append(current_chain)
+                current_chain = [backup]
+            elif backup['file_type'] == 'incremental':
+                # Add to current chain
+                current_chain.append(backup)
+            # Ignore other types (simple_backup, incremental_snapshot)
+        
+        # Add last chain
+        if current_chain:
+            chains.append(current_chain)
+        
+        return chains
+    
     def apply_retention_policies(self, job):
         """Apply retention policies for job"""
         try:
@@ -2603,40 +2881,85 @@ class SyncBackupApp:
                 policy_type = policy['policy_type']
                 policy_value = policy['policy_value']
                 
-                deleted_count = self.db_manager.cleanup_old_backups(job.id, policy_type, policy_value)
-                
-                if deleted_count > 0:
-                    self.logger.info(f"[Job: {job.name}] Retention policy '{policy_type}' deleted {deleted_count} old backups")
+                # For incremental jobs, apply chain-based retention
+                if job.job_type == 'Incremental':
+                    self.apply_incremental_chain_retention(job, policy_type, policy_value)
+                else:
+                    # For simple jobs, delete old backups
+                    backup_files = self.db_manager.get_backup_files(job.id)
                     
-                    # Delete actual files from filesystem
-                    self.delete_backup_files_from_fs(job.id, policy_type, policy_value)
+                    # Keep only the most recent N files
+                    if len(backup_files) > policy_value:
+                        files_to_delete = backup_files[policy_value:]
+                        
+                        # Delete from filesystem and database
+                        for file_info in files_to_delete:
+                            try:
+                                # Delete from filesystem
+                                file_path = Path(file_info['file_path'])
+                                if file_path.exists():
+                                    if file_path.is_dir():
+                                        shutil.rmtree(file_path)
+                                    else:
+                                        file_path.unlink()
+                                    self.logger.info(f"[Job: {job.name}] Deleted old backup: {file_path.name}")
+                                
+                                # Delete from database
+                                self.db_manager.delete_backup_file(file_info['id'])
+                            except Exception as e:
+                                self.logger.error(f"[Job: {job.name}] Error deleting {file_info['file_path']}: {e}")
                     
         except Exception as e:
             self.logger.error(f"[Job: {job.name}] Error applying retention policies: {e}")
     
+    def apply_incremental_chain_retention(self, job, policy_type, policy_value):
+        """Apply retention policy for incremental backups (chain-based)"""
+        try:
+            # Get all backup files for this job
+            backup_files = self.db_manager.get_backup_files(job.id)
+            
+            # Group into chains
+            chains = self.group_incremental_backups_into_chains(backup_files)
+            
+            if not chains:
+                return
+            
+            # Keep only the most recent N chains (only keep_count is supported)
+            chains_to_delete = []
+            
+            if len(chains) > policy_value:
+                chains_to_delete = chains[:-policy_value]  # Delete oldest chains
+                self.logger.info(f"[Job: {job.name}] Keeping {policy_value} most recent chains, deleting {len(chains_to_delete)} old chains")
+            
+            # Delete chains from filesystem and database
+            for chain in chains_to_delete:
+                for backup in chain:
+                    try:
+                        # Delete from filesystem
+                        file_path = Path(backup['file_path'])
+                        if file_path.exists():
+                            if file_path.is_dir():
+                                shutil.rmtree(file_path)
+                                self.logger.info(f"[Job: {job.name}] Deleted chain folder: {file_path.name}")
+                            else:
+                                file_path.unlink()
+                        
+                        # Delete from database
+                        self.db_manager.delete_backup_file(backup['id'])
+                    except Exception as e:
+                        self.logger.error(f"[Job: {job.name}] Error deleting backup {backup['file_path']}: {e}")
+            
+        except Exception as e:
+            self.logger.error(f"[Job: {job.name}] Error applying incremental chain retention: {e}")
+    
     def delete_backup_files_from_fs(self, job_id, policy_type, policy_value):
-        """Delete backup files from filesystem based on retention policy"""
+        """Delete backup files from filesystem based on retention policy (Simple backups only)"""
         try:
             # Get files to delete from database
             backup_files = self.db_manager.get_backup_files(job_id)
             
-            if policy_type == 'keep_count':
-                # Keep only the most recent N files
-                files_to_delete = backup_files[policy_value:]
-            elif policy_type == 'keep_days':
-                # Delete files older than N days
-                cutoff_date = datetime.now() - timedelta(days=policy_value)
-                files_to_delete = [f for f in backup_files 
-                                 if datetime.fromisoformat(f['created_at']) < cutoff_date]
-            elif policy_type == 'keep_size':
-                # Delete files until total size is under limit
-                total_size = 0
-                files_to_delete = []
-                for file_info in reversed(backup_files):  # Start from oldest
-                    if total_size + file_info['file_size'] > policy_value * 1024 * 1024:
-                        files_to_delete.append(file_info)
-                    else:
-                        total_size += file_info['file_size']
+            # Keep only the most recent N files
+            files_to_delete = backup_files[policy_value:] if len(backup_files) > policy_value else []
             
             # Delete files from filesystem
             for file_info in files_to_delete:

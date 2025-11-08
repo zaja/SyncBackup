@@ -167,6 +167,9 @@ class SyncBackupService:
             else:
                 raise Exception(f"Unknown job type: {job_type}")
             
+            # Apply retention policies
+            self.apply_retention_policies_service(job_data, db_manager)
+            
             # Update last_run and calculate next_run
             last_run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             next_run = self.calculate_next_run_service(job_data)
@@ -234,57 +237,210 @@ class SyncBackupService:
         return files_processed
     
     def execute_incremental_job_service(self, job_data, db_manager):
-        """Execute Incremental job without GUI"""
+        """Execute Incremental job without GUI - with reset_chain_after and preserve_deleted support"""
         from pathlib import Path
         from datetime import datetime
         import shutil
         import os
+        import json
+        import time
         
         source_path = Path(job_data['source_path'])
         dest_base = Path(job_data['dest_path'])
-        sync_path = dest_base / source_path.name
+        folder_name = source_path.name
+        job_id = job_data['id']
+        reset_chain_after = job_data.get('reset_chain_after', 0)
+        preserve_deleted = job_data.get('preserve_deleted', False)
         
         if not source_path.exists():
             raise Exception(f"Source path does not exist: {source_path}")
         
         self.logger.info(f"[Job: {job_data['name']}] Source: {source_path}")
-        self.logger.info(f"[Job: {job_data['name']}] Destination: {sync_path}")
+        self.logger.info(f"[Job: {job_data['name']}] Destination: {dest_base}")
         
-        # Create sync directory if it doesn't exist
-        sync_path.mkdir(parents=True, exist_ok=True)
-        
-        # Simple sync - copy all files
         files_processed = 0
-        files_checked = 0
-        files_skipped = 0
         
-        for root, dirs, files in os.walk(source_path):
-            root_path = Path(root)
-            rel_path = os.path.relpath(root, source_path)
-            dest_dir = sync_path / rel_path if rel_path != '.' else sync_path
+        # Check if this is the first incremental backup
+        hash_record = db_manager.get_backup_hash(job_id, 'incremental')
+        
+        # Check if we need to reset the chain
+        should_reset_chain = False
+        if hash_record and reset_chain_after > 0:
+            incremental_count = self._count_incremental_backups_since_inicial(job_id, db_manager)
+            if incremental_count >= reset_chain_after:
+                should_reset_chain = True
+                self.logger.info(f"[Job: {job_data['name']}] Resetting backup chain after {incremental_count} incremental backups")
+        
+        if not hash_record or should_reset_chain:
+            # First run - create initial backup with _INICIAL suffix
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            inicial_name = f"{folder_name}_INCREMENTAL_INICIAL_{timestamp}"
+            inicial_path = dest_base / inicial_name
             
-            dest_dir.mkdir(parents=True, exist_ok=True)
+            self.logger.info(f"[Job: {job_data['name']}] Creating initial incremental backup: {inicial_name}")
+            
+            # Copy all files
+            shutil.copytree(source_path, inicial_path, dirs_exist_ok=True)
+            files_processed = sum(1 for _ in inicial_path.rglob('*') if _.is_file())
+            
+            # Track initial backup in database
+            db_manager.add_backup_file(
+                job_id,
+                str(inicial_path),
+                'incremental_inicial',
+                datetime.now().isoformat(),
+                self._get_folder_size(inicial_path)
+            )
+            
+            # Store backup path and timestamp
+            backup_info = {
+                'path': str(inicial_path),
+                'timestamp': time.time()
+            }
+            db_manager.update_backup_hash(job_id, 'incremental', json.dumps(backup_info))
+            
+            self.logger.info(f"[Job: {job_data['name']}] Created initial incremental backup with {files_processed} files")
+        else:
+            # Subsequent incremental backups - only changed files
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            incremental_name = f"{folder_name}_INCREMENTAL_{timestamp}"
+            incremental_path = dest_base / incremental_name
+            
+            # Get the last backup path to compare against
+            try:
+                backup_info = json.loads(hash_record['mtime'])
+                last_backup_path = Path(backup_info['path'])
+            except:
+                self.logger.error(f"[Job: {job_data['name']}] Could not parse last backup info")
+                return 0
+            
+            if not last_backup_path.exists():
+                self.logger.error(f"[Job: {job_data['name']}] Last backup path does not exist: {last_backup_path}")
+                return 0
+            
+            self.logger.info(f"[Job: {job_data['name']}] Creating incremental backup: {incremental_name}")
+            self.logger.info(f"[Job: {job_data['name']}] Comparing against: {last_backup_path}")
+            
+            # Copy only changed files
+            files_processed = self._copy_changed_files(source_path, incremental_path, last_backup_path)
+            
+            if files_processed > 0:
+                # Track incremental backup in database
+                db_manager.add_backup_file(
+                    job_id,
+                    str(incremental_path),
+                    'incremental',
+                    datetime.now().isoformat(),
+                    self._get_folder_size(incremental_path)
+                )
+                
+                # Update backup path and timestamp
+                backup_info = {
+                    'path': str(incremental_path),
+                    'timestamp': time.time()
+                }
+                db_manager.update_backup_hash(job_id, 'incremental', json.dumps(backup_info))
+                
+                self.logger.info(f"[Job: {job_data['name']}] Created incremental backup with {files_processed} changed files")
+            else:
+                # No changes, remove empty directory
+                if incremental_path.exists():
+                    shutil.rmtree(incremental_path)
+                self.logger.info(f"[Job: {job_data['name']}] No changes detected, skipping incremental backup")
+        
+        return files_processed
+    
+    def _copy_changed_files(self, source, dest, last_backup):
+        """Copy only files that are new or modified compared to last backup"""
+        import shutil
+        import os
+        from pathlib import Path
+        
+        files_processed = 0
+        
+        for root, dirs, files in os.walk(source):
+            root_path = Path(root)
+            rel_path = os.path.relpath(root, source)
             
             for file in files:
                 src_file = root_path / file
-                dst_file = dest_dir / file
-                files_checked += 1
                 
-                # Copy if doesn't exist or is newer
-                if not dst_file.exists():
-                    self.logger.info(f"[Job: {job_data['name']}] Copying new file: {file}")
+                # Compare with last backup
+                last_backup_file = last_backup / rel_path / file if rel_path != '.' else last_backup / file
+                
+                # Check if file is new or modified
+                is_new = not last_backup_file.exists()
+                is_modified = False
+                
+                if not is_new:
+                    try:
+                        # Compare modification time and size
+                        src_stat = src_file.stat()
+                        last_stat = last_backup_file.stat()
+                        is_modified = (src_stat.st_mtime > last_stat.st_mtime or 
+                                     src_stat.st_size != last_stat.st_size)
+                    except:
+                        is_modified = True
+                
+                # Copy if new or modified
+                if is_new or is_modified:
+                    dest_dir = dest / rel_path if rel_path != '.' else dest
+                    dest_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    dst_file = dest_dir / file
                     shutil.copy2(src_file, dst_file)
                     files_processed += 1
-                elif src_file.stat().st_mtime > dst_file.stat().st_mtime:
-                    self.logger.info(f"[Job: {job_data['name']}] Updating modified file: {file}")
-                    shutil.copy2(src_file, dst_file)
-                    files_processed += 1
-                else:
-                    files_skipped += 1
-        
-        self.logger.info(f"[Job: {job_data['name']}] Incremental sync completed: {files_processed} copied, {files_skipped} skipped, {files_checked} total")
+                    
+                    status = "new" if is_new else "modified"
+                    self.logger.debug(f"Copied {status} file: {rel_path}/{file}")
         
         return files_processed
+    
+    def _get_folder_size(self, folder_path):
+        """Get total size of folder in bytes"""
+        from pathlib import Path
+        total_size = 0
+        try:
+            for file_path in Path(folder_path).rglob('*'):
+                if file_path.is_file():
+                    total_size += file_path.stat().st_size
+        except:
+            pass
+        return total_size
+    
+    def _count_incremental_backups_since_inicial(self, job_id, db_manager):
+        """Count incremental backups since last INICIAL"""
+        try:
+            import sqlite3
+            with sqlite3.connect(db_manager.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Find the most recent INICIAL backup
+                cursor.execute("""
+                    SELECT created_at FROM backup_files
+                    WHERE job_id = ? AND file_type = 'incremental_inicial'
+                    ORDER BY created_at DESC LIMIT 1
+                """, (job_id,))
+                
+                inicial_result = cursor.fetchone()
+                if not inicial_result:
+                    return 0
+                
+                inicial_time = inicial_result[0]
+                
+                # Count incremental backups after that INICIAL
+                cursor.execute("""
+                    SELECT COUNT(*) FROM backup_files
+                    WHERE job_id = ? 
+                    AND file_type = 'incremental'
+                    AND created_at > ?
+                """, (job_id, inicial_time))
+                
+                count_result = cursor.fetchone()
+                return count_result[0] if count_result else 0
+        except Exception as e:
+            self.logger.error(f"Error counting incremental backups: {e}")
+            return 0
     
     def calculate_next_run_service(self, job_data):
         """Calculate next run time for job"""
@@ -345,6 +501,85 @@ class SyncBackupService:
             cursor = conn.cursor()
             cursor.execute(query, values)
             conn.commit()
+    
+    def apply_retention_policies_service(self, job_data, db_manager):
+        """Apply retention policies for job"""
+        from pathlib import Path
+        import shutil
+        
+        try:
+            policies = db_manager.get_retention_policies(job_data['id'])
+            
+            for policy in policies:
+                policy_type = policy['policy_type']
+                policy_value = policy['policy_value']
+                
+                # Get all backup files for this job
+                backup_files = db_manager.get_backup_files(job_data['id'])
+                
+                if job_data['job_type'] == 'Incremental':
+                    # For incremental jobs, delete entire chains
+                    chains = self._group_incremental_backups_into_chains(backup_files)
+                    
+                    if len(chains) > policy_value:
+                        chains_to_delete = chains[:-policy_value]
+                        self.logger.info(f"[Job: {job_data['name']}] Keeping {policy_value} most recent chains, deleting {len(chains_to_delete)} old chains")
+                        
+                        for chain in chains_to_delete:
+                            for backup in chain:
+                                try:
+                                    file_path = Path(backup['file_path'])
+                                    if file_path.exists():
+                                        if file_path.is_dir():
+                                            shutil.rmtree(file_path)
+                                            self.logger.info(f"[Job: {job_data['name']}] Deleted chain folder: {file_path.name}")
+                                        else:
+                                            file_path.unlink()
+                                    
+                                    db_manager.delete_backup_file(backup['id'])
+                                except Exception as e:
+                                    self.logger.error(f"[Job: {job_data['name']}] Error deleting backup {backup['file_path']}: {e}")
+                else:
+                    # For simple jobs, delete old backups
+                    if len(backup_files) > policy_value:
+                        files_to_delete = backup_files[policy_value:]
+                        
+                        for file_info in files_to_delete:
+                            try:
+                                file_path = Path(file_info['file_path'])
+                                if file_path.exists():
+                                    if file_path.is_dir():
+                                        shutil.rmtree(file_path)
+                                    else:
+                                        file_path.unlink()
+                                    self.logger.info(f"[Job: {job_data['name']}] Deleted old backup: {file_path.name}")
+                                
+                                db_manager.delete_backup_file(file_info['id'])
+                            except Exception as e:
+                                self.logger.error(f"[Job: {job_data['name']}] Error deleting {file_info['file_path']}: {e}")
+        except Exception as e:
+            self.logger.error(f"[Job: {job_data['name']}] Error applying retention policies: {e}")
+    
+    def _group_incremental_backups_into_chains(self, backup_files):
+        """Group incremental backups into chains"""
+        chains = []
+        current_chain = []
+        
+        # Sort by created_at
+        sorted_backups = sorted(backup_files, key=lambda x: x['created_at'])
+        
+        for backup in sorted_backups:
+            if backup['file_type'] == 'incremental_inicial':
+                if current_chain:
+                    chains.append(current_chain)
+                current_chain = [backup]
+            elif backup['file_type'] == 'incremental':
+                current_chain.append(backup)
+        
+        if current_chain:
+            chains.append(current_chain)
+        
+        return chains
 
 # Make the service class inherit from ServiceFramework if pywin32 is available
 if PYWIN32_AVAILABLE:

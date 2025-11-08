@@ -1,4 +1,4 @@
-# SyncBackup v1.4 - Advanced Folder Synchronization and Backup Application
+# SyncBackup v1.5 - Advanced Folder Synchronization and Backup Application
 
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/zaja/SyncBackup)](https://github.com/zaja/SyncBackup/releases/latest)
 [![GitHub Release Date](https://img.shields.io/github/release-date/zaja/SyncBackup)](https://github.com/zaja/SyncBackup/releases/latest)
@@ -12,13 +12,13 @@
 
 ## 📥 Download Latest Release
 
-**[📦 Download SyncBackup v1.4](https://github.com/zaja/SyncBackup/releases/latest)** - Windows Service Fixes & Improvements
+**[📦 Download SyncBackup v1.5](https://github.com/zaja/SyncBackup/releases/latest)** - True Incremental Backups & Major Improvements
 
 ---
 
 ## 📋 Overview
 
-SyncBackup v1.4 is an advanced Python Tkinter application for folder synchronization and backup with automatic scheduling capabilities, file retention policy, SQLite database, system tray functionality, comprehensive dashboard monitoring, and Windows Service support.
+SyncBackup v1.5 is an advanced Python Tkinter application for folder synchronization and backup with **true incremental backup system**, automatic scheduling, chain-based retention policy, preserve deleted files, SQLite database, system tray functionality, comprehensive dashboard monitoring, and Windows Service support.
 
 ## ✨ Key Features
 
@@ -37,29 +37,36 @@ SyncBackup v1.4 is an advanced Python Tkinter application for folder synchroniza
 - **File Exclusion**: Exclude specific files/folders using patterns (e.g., .git, node_modules)
 - **Desktop Notifications**: Optional notifications when jobs complete
 
-#### **Incremental Job**
-Incremental jobs work with **two different concepts**:
+#### **Incremental Job** ⭐ NEW in v1.5
+True incremental backup system with smart change detection:
 
-1. **🔄 Sync Directory** (Working Copy):
-   - Location: `destination/source_folder_name/`
-   - Purpose: Maintains an up-to-date synchronized copy of the source folder
-   - Behavior: Updated incrementally with each job execution
-   - **Not displayed** in Backup Files tab (it's a sync, not a backup)
+1. **🎯 INICIAL Backup** (First/Reset):
+   - Location: `destination/source_folder_name_INCREMENTAL_INICIAL_20251108_140000/`
+   - Purpose: Full backup with all files - serves as baseline
+   - Created: First run or after N incremental backups (chain reset)
+   - Contains: Complete copy of all source files
 
-2. **📸 Snapshots** (Archive Copies):
-   - Location: `destination/source_folder_name_INCREMENTAL_20251002_090326/`
-   - Purpose: Preserves the state at specific points in time
-   - Behavior: Created periodically based on the snapshot interval
-   - **Displayed** in Backup Files tab (these are actual backup files)
+2. **📦 Incremental Backups** (Subsequent):
+   - Location: `destination/source_folder_name_INCREMENTAL_20251108_150000/`
+   - Purpose: Stores only changed or new files since last backup
+   - Behavior: Compares with last backup using modification time and file size
+   - Contains: Only files that were added or modified
 
-**Options:**
-- **Preserve deleted files**: Keep files in sync directory even if deleted from source
-- **Create snapshots**: Enable/disable periodic snapshot creation
-- **Snapshot interval**: How often to create snapshots (hours/days/weeks)
+**Key Features:**
+- **Smart Change Detection**: Only backs up files that actually changed
+- **Reset Chain After N**: Automatically create new INICIAL after N incrementals
+- **Preserve Deleted Files**: Marks deleted files with `_DELETED` suffix instead of removing them
 - **File Exclusion**: Exclude specific files/folders using patterns
 - **Desktop Notifications**: Optional notifications when jobs complete
 
-**Important:** Only snapshots appear in the Backup Files tab, not the sync directory. This is by design - the sync directory is a working copy, while snapshots are archive backups for recovery purposes.
+**Example Chain:**
+```
+Day 1:  Project_INCREMENTAL_INICIAL_20251108_140000/  (5 GB - all files)
+Day 2:  Project_INCREMENTAL_20251109_140000/          (50 MB - changed files)
+Day 3:  Project_INCREMENTAL_20251110_140000/          (30 MB - changed files)
+...
+Day 31: Project_INCREMENTAL_INICIAL_20251208_140000/  (5.2 GB - new full backup)
+```
 
 ### ⏰ Advanced Scheduler
 - **Every X minutes**: Run every X minutes
@@ -86,6 +93,26 @@ Incremental jobs work with **two different concepts**:
 - **Run Selected**: Run selected job (brown color, Jobs tab only)
 
 **Note:** Job control buttons are only visible when the Jobs tab is active for better UI organization.
+
+### 🗑️ Retention Policy ⭐ NEW in v1.5
+Automatic cleanup of old backups:
+
+**For Simple Jobs:**
+- Keep last N backups
+- Deletes oldest backup folders automatically
+- Example: Keep 5 → Only 5 most recent backups remain
+
+**For Incremental Jobs:**
+- Keep last N full backups (chains)
+- Deletes entire chains (INICIAL + all incrementals)
+- Example: Keep 2 chains → Keeps 2 most recent INICIAL backups with all their incrementals
+- Prevents orphaned incremental backups
+
+**Benefits:**
+- Automatic space management
+- No manual cleanup needed
+- Configurable per job
+- Runs after each backup
 
 ### 🔽 System Tray Functionality
 - **Minimize to tray**: Application minimizes to system tray
