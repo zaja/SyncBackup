@@ -421,12 +421,15 @@ class SyncBackupApp:
         # Bind tab change event to refresh backup files when needed
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
         
-        # Style for notebook tabs
+        # Style for notebook tabs and buttons
         style = ttk.Style()
         style.configure("TNotebook.Tab", font=("Arial", 11), padding=(10, 5), foreground="gray")
         style.map("TNotebook.Tab", 
                  foreground=[("selected", "black"), ("active", "black")],
                  font=[("selected", ("Arial", 11, "bold")), ("active", ("Arial", 11, "bold"))])
+        
+        # Configure button style for better icon alignment
+        style.configure("TButton", padding=(8, 4))
         
         # Dashboard tab
         self.create_dashboard_tab()
@@ -938,13 +941,16 @@ class SyncBackupApp:
         backup_type_combo.bind("<<ComboboxSelected>>", self.refresh_backup_files)
         
         # Refresh button
-        ttk.Button(control_frame, text="🔄 Refresh", command=self.refresh_backup_files).pack(side=tk.LEFT, padx=(0, 10))
+        refresh_btn = ttk.Button(control_frame, text="🔄 Refresh", command=self.refresh_backup_files)
+        refresh_btn.pack(side=tk.LEFT, padx=(0, 10))
         
         # Delete selected button
-        ttk.Button(control_frame, text="🗑️ Delete Selected", command=self.delete_selected_backup).pack(side=tk.LEFT, padx=(0, 10))
+        delete_btn = ttk.Button(control_frame, text="🗑️ Delete Selected", command=self.delete_selected_backup)
+        delete_btn.pack(side=tk.LEFT, padx=(0, 10))
         
         # Clean orphaned records button
-        ttk.Button(control_frame, text="🧹 Clean Missing", command=self.clean_orphaned_records).pack(side=tk.LEFT)
+        clean_btn = ttk.Button(control_frame, text="🧹 Clean Missing", command=self.clean_orphaned_records)
+        clean_btn.pack(side=tk.LEFT)
         
         # Treeview for backup files
         columns = ("Job", "Type", "Path", "Created", "Size")
@@ -1363,8 +1369,9 @@ class SyncBackupApp:
             self.update_service_status_indicator()
             
             # Refresh button for status
-            ttk.Button(status_frame, text="🔄", width=3, 
-                      command=self.update_service_status_indicator).pack(side=tk.LEFT, padx=(5, 0))
+            refresh_status_btn = ttk.Button(status_frame, text="🔄", width=3, 
+                      command=self.update_service_status_indicator)
+            refresh_status_btn.pack(side=tk.LEFT, padx=(5, 0))
             
             self.run_as_service_var = tk.BooleanVar(value=self.db_manager.get_setting('run_as_service', '0') == '1')
             
@@ -1393,15 +1400,15 @@ class SyncBackupApp:
             service_btn_frame2 = ttk.Frame(service_frame)
             service_btn_frame2.pack(anchor=tk.W, pady=(5, 0))
             
-            self.start_service_btn = ttk.Button(service_btn_frame2, text="▶ Start Service", 
+            self.start_service_btn = ttk.Button(service_btn_frame2, text="▶  Start Service", 
                       command=self.start_service_action)
             self.start_service_btn.pack(side=tk.LEFT, padx=(0, 10))
             
-            self.stop_service_btn = ttk.Button(service_btn_frame2, text="⏸ Stop Service", 
+            self.stop_service_btn = ttk.Button(service_btn_frame2, text="⏸  Stop Service", 
                       command=self.stop_service_action)
             self.stop_service_btn.pack(side=tk.LEFT, padx=(0, 10))
             
-            self.restart_service_btn = ttk.Button(service_btn_frame2, text="🔄 Restart Service", 
+            self.restart_service_btn = ttk.Button(service_btn_frame2, text="🔄  Restart Service", 
                       command=self.restart_service_action)
             self.restart_service_btn.pack(side=tk.LEFT)
             
@@ -1412,8 +1419,9 @@ class SyncBackupApp:
         save_btn_frame = ttk.Frame(main_container)
         save_btn_frame.pack(pady=(20, 0))
         
-        ttk.Button(save_btn_frame, text=self._("buttons.save_settings"), 
-                  command=self.save_settings, style="Accent.TButton").pack()
+        save_settings_btn = ttk.Button(save_btn_frame, text="💾  " + self._("buttons.save_settings").replace("💾 ", ""), 
+                  command=self.save_settings, style="Accent.TButton")
+        save_settings_btn.pack()
         
         # Configure accent button style
         style = ttk.Style()
