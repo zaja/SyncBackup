@@ -64,6 +64,12 @@ test_data/
 migrate_*.py
 fix_*.py
 
+# Build and release scripts (developer only)
+create_release*.bat
+create_release*.ps1
+build*.bat
+build*.ps1
+
 # Documentation that's not needed in repo
 *_IMPROVEMENTS.md
 DEPLOYMENT_CHECKLIST.md
