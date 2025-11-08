@@ -2379,9 +2379,11 @@ class SyncBackupApp:
         
         start_time = time.time()
         try:
-            self.logger.info(f"[Job: {job.name}] Job started (force={force})")
-            self.db_manager.add_job_log(job.id, "started", f"Job started (force={force})")
-            print(f"Execute job: {job.name} (Type: {job.job_type}, Force: {force})")
+            # Log with user-friendly message
+            trigger_msg = "Manual run" if force else "Scheduled run"
+            self.logger.info(f"[Job: {job.name}] Job started ({trigger_msg})")
+            self.db_manager.add_job_log(job.id, "started", f"{trigger_msg}")
+            print(f"Execute job: {job.name} (Type: {job.job_type}, Trigger: {trigger_msg})")
             
             if job.job_type == "Simple":
                 files_processed = self.execute_simple_job(job, force)

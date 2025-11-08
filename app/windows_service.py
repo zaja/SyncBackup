@@ -155,7 +155,7 @@ class SyncBackupService:
         
         try:
             self.logger.info(f"[Job: {job_name}] Starting execution (Type: {job_type})")
-            db_manager.add_job_log(job_id, "started", f"Job started by service")
+            db_manager.add_job_log(job_id, "started", "Scheduled run")
             
             files_processed = 0
             
