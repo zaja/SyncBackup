@@ -33,9 +33,11 @@ env/
 *~
 
 # Database
+*.db
 *.db-journal
 *.db-wal
 *.db-shm
+app/sync_backup.db
 
 # Logs
 *.log
