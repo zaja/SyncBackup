@@ -306,23 +306,19 @@ class SyncBackupService:
             incremental_name = f"{folder_name}_INCREMENTAL_{timestamp}"
             incremental_path = dest_base / incremental_name
             
-            # Get the last backup path to compare against
-            try:
-                backup_info = json.loads(hash_record['mtime'])
-                last_backup_path = Path(backup_info['path'])
-            except:
-                self.logger.error(f"[Job: {job_data['name']}] Could not parse last backup info")
-                return 0
+            # Get the INICIAL backup path to compare against (not last incremental!)
+            # We must compare with INICIAL to see which files actually changed
+            inicial_backup_path = self._get_inicial_backup_path(job_id, db_manager)
             
-            if not last_backup_path.exists():
-                self.logger.error(f"[Job: {job_data['name']}] Last backup path does not exist: {last_backup_path}")
+            if not inicial_backup_path or not inicial_backup_path.exists():
+                self.logger.error(f"[Job: {job_data['name']}] INICIAL backup not found, cannot create incremental")
                 return 0
             
             self.logger.info(f"[Job: {job_data['name']}] Creating incremental backup: {incremental_name}")
-            self.logger.info(f"[Job: {job_data['name']}] Comparing against: {last_backup_path}")
+            self.logger.info(f"[Job: {job_data['name']}] Comparing against INICIAL: {inicial_backup_path}")
             
-            # Copy only changed files and handle deleted files
-            files_processed = self._copy_changed_files(source_path, incremental_path, last_backup_path, preserve_deleted)
+            # Copy only changed files (compared to INICIAL backup) and handle deleted files
+            files_processed = self._copy_changed_files(source_path, incremental_path, inicial_backup_path, preserve_deleted)
             
             if files_processed > 0:
                 # Track incremental backup in database
@@ -447,6 +443,28 @@ class SyncBackupService:
         except:
             pass
         return total_size
+    
+    def _get_inicial_backup_path(self, job_id, db_manager):
+        """Get the path of the most recent INICIAL backup for comparison"""
+        try:
+            import sqlite3
+            with sqlite3.connect(db_manager.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Find the most recent INICIAL backup
+                cursor.execute("""
+                    SELECT file_path FROM backup_files
+                    WHERE job_id = ? AND file_type = 'incremental_inicial'
+                    ORDER BY created_at DESC LIMIT 1
+                """, (job_id,))
+                
+                result = cursor.fetchone()
+                if result:
+                    from pathlib import Path
+                    return Path(result[0])
+        except Exception as e:
+            self.logger.error(f"Error getting INICIAL backup path: {e}")
+        return None
     
     def _count_incremental_backups_since_inicial(self, job_id, db_manager):
         """Count incremental backups since last INICIAL"""

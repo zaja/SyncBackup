@@ -1410,7 +1410,7 @@ class SyncBackupApp:
             
             self.restart_service_btn = ttk.Button(service_btn_frame2, text="🔄  Restart Service", 
                       command=self.restart_service_action)
-            self.restart_service_btn.pack(side=tk.LEFT)
+            self.stop_service_btn.pack(side=tk.LEFT, padx=(0, 10))
             
             # Update button states based on current service status
             self.update_service_button_states()
@@ -2529,14 +2529,19 @@ class SyncBackupApp:
             incremental_name = f"{folder_name}_INCREMENTAL_{timestamp}"
             incremental_path = dest_base / incremental_name
             
-            # Get the last backup path to compare against
-            last_backup_path = self.get_last_incremental_backup_path(job)
+            # Get the INICIAL backup path to compare against (not last incremental!)
+            # We must compare with INICIAL to see which files actually changed
+            inicial_backup_path = self.get_inicial_backup_path(job)
             
-            # Copy only changed files
+            if not inicial_backup_path or not inicial_backup_path.exists():
+                self.logger.error(f"[Job: {job.name}] INICIAL backup not found, cannot create incremental")
+                return 0
+            
+            # Copy only changed files (compared to INICIAL backup)
             files_processed = self.sync_incremental_changes_only(
                 source_path, 
                 incremental_path, 
-                last_backup_path,
+                inicial_backup_path,
                 job.exclude_patterns,
                 job.preserve_deleted
             )
@@ -2616,6 +2621,27 @@ class SyncBackupApp:
                 return Path(backup_info['path'])
             except:
                 pass
+        return None
+    
+    def get_inicial_backup_path(self, job):
+        """Dohvati putanju najnovijeg INICIAL backupa za usporedbu"""
+        try:
+            import sqlite3
+            with sqlite3.connect(self.db_manager.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Find the most recent INICIAL backup
+                cursor.execute("""
+                    SELECT file_path FROM backup_files
+                    WHERE job_id = ? AND file_type = 'incremental_inicial'
+                    ORDER BY created_at DESC LIMIT 1
+                """, (job.id,))
+                
+                result = cursor.fetchone()
+                if result:
+                    return Path(result[0])
+        except Exception as e:
+            self.logger.error(f"Error getting INICIAL backup path: {e}")
         return None
     
     def count_incremental_backups_since_inicial(self, job):
