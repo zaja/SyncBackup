@@ -1019,66 +1019,78 @@ class SyncBackupApp:
         if type_filter != "All":
             backup_files = [f for f in backup_files if f['file_type'] == type_filter]
         
-        # Add to treeview with file existence check
+        # Group incremental backups into chains for visual hierarchy
+        chains = self._group_backups_into_chains(backup_files)
+        
+        # Add to treeview with file existence check and chain hierarchy
         orphaned_files = []
-        for file_info in backup_files:
-            file_path = file_info.get('file_path', '')
-            
-            # Check if file exists
-            file_exists = False
-            if file_path:
-                try:
-                    file_exists = os.path.exists(file_path)
-                    # Debug info
-                    print(f"Checking file: {file_path} - Exists: {file_exists}")
-                except Exception as e:
-                    print(f"Error checking file {file_path}: {e}")
-                    file_exists = False
-            
-            if not file_exists and file_path:
-                orphaned_files.append(file_info['id'])
-            
-            # Format file size
-            size_bytes = file_info.get('file_size', 0)
-            if size_bytes > 1024 * 1024:
-                size_str = f"{size_bytes / (1024 * 1024):.1f} MB"
-            elif size_bytes > 1024:
-                size_str = f"{size_bytes / 1024:.1f} KB"
-            else:
-                size_str = f"{size_bytes} B"
-            
-            # Format created date
-            created_date = file_info.get('created_at', '')
-            if created_date:
-                try:
-                    from datetime import datetime
-                    dt = datetime.fromisoformat(created_date.replace('Z', '+00:00'))
-                    created_str = dt.strftime("%Y-%m-%d %H:%M")
-                except:
-                    created_str = created_date
-            else:
-                created_str = "Unknown"
-            
-            # Add visual indicator for missing files
-            job_name = file_info.get('job_name', 'Unknown')
-            file_type = file_info.get('file_type', 'Unknown')
-            
-            if not file_exists:
-                job_name = f"❌ {job_name}"
-                file_type = f"❌ {file_type}"
-                size_str = f"❌ {size_str}"
-            
-            item_id = self.backup_tree.insert("", "end", values=(
-                job_name,
-                file_type,
-                file_path,
-                created_str,
-                size_str
-            ))
-            
-            # Tag missing files for different styling
-            if not file_exists:
-                self.backup_tree.set(item_id, "Job", f"❌ {file_info.get('job_name', 'Unknown')} (MISSING)")
+        for chain in chains:
+            for idx, file_info in enumerate(chain):
+                file_path = file_info.get('file_path', '')
+                
+                # Check if file exists
+                file_exists = False
+                if file_path:
+                    try:
+                        file_exists = os.path.exists(file_path)
+                        # Debug info
+                        print(f"Checking file: {file_path} - Exists: {file_exists}")
+                    except Exception as e:
+                        print(f"Error checking file {file_path}: {e}")
+                        file_exists = False
+                
+                if not file_exists and file_path:
+                    orphaned_files.append(file_info['id'])
+                
+                # Format file size
+                size_bytes = file_info.get('file_size', 0)
+                if size_bytes > 1024 * 1024:
+                    size_str = f"{size_bytes / (1024 * 1024):.1f} MB"
+                elif size_bytes > 1024:
+                    size_str = f"{size_bytes / 1024:.1f} KB"
+                else:
+                    size_str = f"{size_bytes} B"
+                
+                # Format created date
+                created_date = file_info.get('created_at', '')
+                if created_date:
+                    try:
+                        from datetime import datetime
+                        dt = datetime.fromisoformat(created_date.replace('Z', '+00:00'))
+                        created_str = dt.strftime("%Y-%m-%d %H:%M")
+                    except:
+                        created_str = created_date
+                else:
+                    created_str = "Unknown"
+                
+                # Determine if this is INICIAL or incremental
+                job_name = file_info.get('job_name', 'Unknown')
+                file_type = file_info.get('file_type', 'Unknown')
+                is_inicial = file_type == 'incremental_inicial'
+                
+                # Add indent for incremental backups (child of INICIAL)
+                if not is_inicial and idx > 0:
+                    # This is an incremental backup, add visual indent
+                    job_name = f"    ↳ {job_name}"
+                    file_type = f"  {file_type}"
+                
+                # Add visual indicator for missing files
+                if not file_exists:
+                    job_name = f"❌ {job_name}"
+                    file_type = f"❌ {file_type}"
+                    size_str = f"❌ {size_str}"
+                
+                item_id = self.backup_tree.insert("", "end", values=(
+                    job_name,
+                    file_type,
+                    file_path,
+                    created_str,
+                    size_str
+                ))
+                
+                # Tag missing files for different styling
+                if not file_exists:
+                    self.backup_tree.set(item_id, "Job", f"❌ {file_info.get('job_name', 'Unknown')} (MISSING)")
         
         # Store orphaned files for cleanup
         self.current_orphaned_files = orphaned_files
@@ -1197,6 +1209,53 @@ class SyncBackupApp:
                     messagebox.showinfo("Success", success_msg)
             else:
                 messagebox.showerror("Error", f"Failed to clean any records:\n" + "\n".join(errors))
+    
+    def _group_backups_into_chains(self, backup_files):
+        """Group backup files into chains for visual hierarchy
+        
+        Returns list of chains, where each chain is a list starting with INICIAL
+        followed by its incremental backups
+        """
+        # Separate by job
+        jobs_backups = {}
+        for backup in backup_files:
+            job_name = backup.get('job_name', 'Unknown')
+            if job_name not in jobs_backups:
+                jobs_backups[job_name] = []
+            jobs_backups[job_name].append(backup)
+        
+        # Build chains for each job
+        all_chains = []
+        for job_name, backups in jobs_backups.items():
+            # Sort by created_at
+            sorted_backups = sorted(backups, key=lambda x: x.get('created_at', ''))
+            
+            # Group into chains
+            current_chain = []
+            for backup in sorted_backups:
+                file_type = backup.get('file_type', '')
+                
+                if file_type == 'incremental_inicial':
+                    # Start new chain
+                    if current_chain:
+                        all_chains.append(current_chain)
+                    current_chain = [backup]
+                elif file_type == 'incremental':
+                    # Add to current chain
+                    if current_chain:
+                        current_chain.append(backup)
+                    else:
+                        # Orphaned incremental without INICIAL, create single-item chain
+                        all_chains.append([backup])
+                else:
+                    # Simple backup or other type, each is its own chain
+                    all_chains.append([backup])
+            
+            # Add last chain
+            if current_chain:
+                all_chains.append(current_chain)
+        
+        return all_chains
     
     def create_settings_tab(self):
         """Kreiraj Settings tab"""
